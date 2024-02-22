@@ -1,7 +1,7 @@
 """
 DONT FORGET TO DELETE!!!
 """
-***REMOVED***
+OPENAI_API_KEY = ""
 
 # 基础设置
 AGENTS_NUM = 1

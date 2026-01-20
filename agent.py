@@ -8,6 +8,8 @@ import google.generativeai as genai
 
 import util
 from log.custom_logger import log
+import json
+
 
 from prompt.agent_prompt import *
 from procoder.functional import format_prompt
@@ -66,11 +68,15 @@ class Agent:
         self.is_bankrupt = False
         self.quit = False
 
+    # def run_api(self, prompt, temperature: float = 1):
+    #     # if 'gpt' in self.model:
+    #     #     return self.run_api_gpt(prompt, temperature)
+    #     # elif 'gemini' in self.model:
+    #     #     return self.run_api_gemini(prompt, temperature)
     def run_api(self, prompt, temperature: float = 1):
-        if 'gpt' in self.model:
-            return self.run_api_gpt(prompt, temperature)
-        elif 'gemini' in self.model:
-            return self.run_api_gemini(prompt, temperature)
+        # Disable all LLM calls completely for baseline run
+        return ""
+    
 
     def run_api_gemini(self, prompt, temperature: float = 1):
         genai.configure(api_key=util.GOOGLE_API_KEY, transport='rest')

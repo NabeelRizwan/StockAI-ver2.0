@@ -14,12 +14,21 @@ from datetime import datetime
 import time
 import pandas as pd
 import numpy as np
+import json
+import os
 
 # Import simulation engine
 from simulation_engine import (
     get_engine, reset_engine, SimulationEngine, 
-    SimulationState, AgentState, MarketEvent
+    SimulationState, AgentState, MarketEvent,
+    PRIMARY_STOCKS, STOCK_UNIVERSE, get_all_stocks, get_stock_sectors, get_stocks_by_sector
 )
+
+# Import chatbot
+from chatbot import render_chatbot_sidebar, init_chatbot_state, render_floating_chatbot
+
+# Import additional styles  
+from styles import get_all_styles, STOCK_CARD_STYLES, NEWS_TICKER_STYLES, FLOATING_ORB_STYLES
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PAGE CONFIG
@@ -42,8 +51,59 @@ if "app_started" not in st.session_state:
     st.session_state.app_started = False
 if "show_guidelines" not in st.session_state:
     st.session_state.show_guidelines = False
+if "show_credits" not in st.session_state:
+    st.session_state.show_credits = False
 if "auto_run" not in st.session_state:
     st.session_state.auto_run = False
+if "sim_speed" not in st.session_state:
+    st.session_state.sim_speed = "Normal"
+if "custom_agent" not in st.session_state:
+    st.session_state.custom_agent = {
+        "enabled": False,
+        "name": "",
+        "nickname": "",
+        "display_name": "",
+        "character": "Balanced",
+        "herding_level": "Medium",
+        "loss_aversion_level": "Medium",
+        "overconfidence_level": "Low",
+        "anchoring_level": "Medium",
+    }
+if "custom_agent_avatar" not in st.session_state:
+    st.session_state.custom_agent_avatar = None
+if "manual_events" not in st.session_state:
+    st.session_state.manual_events = []
+if "custom_agent_loaded" not in st.session_state:
+    st.session_state.custom_agent_loaded = False
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PERSISTENCE HELPERS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+PROFILE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "res", "custom_agent_profile.json")
+
+def load_custom_agent_profile():
+    if st.session_state.custom_agent_loaded:
+        return
+    try:
+        if os.path.exists(PROFILE_PATH):
+            with open(PROFILE_PATH, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+            if isinstance(payload, dict):
+                st.session_state.custom_agent.update(payload)
+    except Exception:
+        pass
+    st.session_state.custom_agent_loaded = True
+
+def save_custom_agent_profile():
+    try:
+        os.makedirs(os.path.dirname(PROFILE_PATH), exist_ok=True)
+        with open(PROFILE_PATH, "w", encoding="utf-8") as f:
+            json.dump(st.session_state.custom_agent, f, indent=2)
+    except Exception:
+        pass
+
+load_custom_agent_profile()
 
 engine: SimulationEngine = st.session_state.engine
 
@@ -1237,6 +1297,100 @@ code, pre, .monospace {
         text-align: center;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   NEWS TICKER
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.news-ticker-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.news-ticker-header {
+    padding: 10px 20px;
+    background: linear-gradient(90deg, rgba(239, 68, 68, 0.12), rgba(245, 158, 11, 0.12));
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent-yellow);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.news-ticker {
+    overflow: hidden;
+    white-space: nowrap;
+    padding: 12px 0;
+}
+
+.news-ticker-content {
+    display: inline-block;
+    animation: ticker 60s linear infinite;
+}
+
+.news-ticker-content:hover {
+    animation-play-state: paused;
+}
+
+.news-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 40px;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.news-item .severity-high { color: var(--accent-red); }
+.news-item .severity-medium { color: var(--accent-yellow); }
+.news-item .severity-low { color: var(--accent-green); }
+
+.news-item .stock-mention {
+    background: var(--accent-blue-dim);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    color: var(--accent-blue);
+    font-weight: 600;
+}
+
+@keyframes ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   STOCK CARDS - Enhanced
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.stock-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.stock-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    opacity: 0.8;
+}
+
+.stock-card.sector-tech::before { background: linear-gradient(90deg, #3b82f6, #8b5cf6); }
+.stock-card.sector-energy::before { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+.stock-card.sector-retail::before { background: linear-gradient(90deg, #f59e0b, #22c55e); }
+.stock-card.sector-crypto::before { background: linear-gradient(90deg, #f59e0b, #eab308); }
+.stock-card.sector-automotive::before { background: linear-gradient(90deg, #ef4444, #f97316); }
+.stock-card.sector-entertainment::before { background: linear-gradient(90deg, #dc2626, #ec4899); }
+.stock-card.sector-ai::before { background: linear-gradient(90deg, #8b5cf6, #06b6d4); }
+.stock-card.sector-semiconductors::before { background: linear-gradient(90deg, #84cc16, #22c55e); }
+.stock-card.sector-finance::before { background: linear-gradient(90deg, #0ea5e9, #3b82f6); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1321,12 +1475,12 @@ def render_landing_page():
     col1, col2, col3, col4, col5 = st.columns([2, 1, 0.2, 1, 2])
     
     with col2:
-        if st.button("View Guidelines", use_container_width=True, type="secondary"):
+        if st.button("View Guidelines", width='stretch', type="secondary"):
             st.session_state.show_guidelines = True
             st.rerun()
     
     with col4:
-        if st.button("Launch Simulation", use_container_width=True, type="primary"):
+        if st.button("Launch Simulation", width='stretch', type="primary"):
             st.session_state.app_started = True
             st.rerun()
     
@@ -1490,7 +1644,7 @@ def render_guidelines_page():
     
     col1, col2, col3 = st.columns([2, 1, 2])
     with col2:
-        if st.button("🚀 Start Simulation", use_container_width=True, type="primary"):
+        if st.button("🚀 Start Simulation", width='stretch', type="primary"):
             st.session_state.app_started = True
             st.session_state.show_guidelines = False
             st.rerun()
@@ -1553,11 +1707,68 @@ def render_header():
             """, unsafe_allow_html=True)
         
         with col4:
-            st.markdown("<div style='padding-top: 6px;'></div>", unsafe_allow_html=True)
-            if st.button("📖 Guidelines", key="header_guidelines", use_container_width=True):
+            st.markdown("<div style='padding-top: 8px;'></div>", unsafe_allow_html=True)
+            if st.button("📖 Guidelines", key="header_guidelines", width='stretch'):
                 st.session_state.show_guidelines = True
                 st.session_state.app_started = False
                 st.rerun()
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NEWS TICKER COMPONENT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def render_news_ticker(state):
+    """Render a scrolling news ticker with market events."""
+    if not state.events and not state.extra_stocks:
+        return
+    
+    # Build news items from events and stock movements
+    news_items = []
+    
+    # Add recent events
+    recent_events = [e for e in state.events if e.day <= state.current_day][-5:]
+    for event in recent_events:
+        severity_class = f"severity-{event.severity.lower()}"
+        news_items.append(f'<span class="{severity_class}">●</span> <strong>{event.title}</strong>: {event.description[:50]}...')
+    
+    # Add stock movements for extra stocks
+    for stock in (state.extra_stocks or [])[:6]:
+        if abs(stock.change_percent) > 3:
+            direction = "📈" if stock.change_percent > 0 else "📉"
+            stock_meta = STOCK_UNIVERSE.get(stock.name, {"emoji": "📊"})
+            news_items.append(f'{direction} <span class="stock-mention">{stock_meta.get("emoji", "📊")} {stock.name}</span> {stock.change_percent:+.1f}%')
+    
+    # Add primary stock movements
+    if state.stock_a and abs(state.stock_a.change_percent) > 2:
+        direction = "📈" if state.stock_a.change_percent > 0 else "📉"
+        stock_meta = PRIMARY_STOCKS.get(state.stock_a.name, {"emoji": "⛽"})
+        news_items.append(f'{direction} <span class="stock-mention">{stock_meta.get("emoji", "⛽")} {state.stock_a.name}</span> {state.stock_a.change_percent:+.1f}%')
+    
+    if state.stock_b and abs(state.stock_b.change_percent) > 2:
+        direction = "📈" if state.stock_b.change_percent > 0 else "📉"
+        stock_meta = PRIMARY_STOCKS.get(state.stock_b.name, {"emoji": "⚡"})
+        news_items.append(f'{direction} <span class="stock-mention">{stock_meta.get("emoji", "⚡")} {state.stock_b.name}</span> {state.stock_b.change_percent:+.1f}%')
+    
+    if not news_items:
+        news_items = ["Welcome to StockAI Market Simulation • Configure and run to see market updates"]
+    
+    # Duplicate items for continuous scroll effect
+    items_html = "".join([f'<span class="news-item">{item}</span>' for item in news_items])
+    items_html = items_html + items_html  # Duplicate for seamless loop
+    
+    st.markdown(f"""
+    <div class="news-ticker-container">
+        <div class="news-ticker-header">
+            <span>📰</span> Market News
+        </div>
+        <div class="news-ticker">
+            <div class="news-ticker-content">
+                {items_html}
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # OVERVIEW TAB
@@ -1566,6 +1777,27 @@ def render_header():
 def render_overview():
     """Render the overview dashboard."""
     state = engine.get_state()
+    
+    # Demo Mode Banner - indicate simulation uses mock behavior not real LLM
+    if state.status not in ["IDLE"]:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(168,85,247,0.1)); 
+                    border: 1px solid rgba(139,92,246,0.3); border-radius: 8px; 
+                    padding: 10px 16px; margin-bottom: 16px; 
+                    display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 18px;">🎮</span>
+            <div style="flex: 1;">
+                <span style="font-weight: 600; color: var(--accent-purple);">Demo Mode</span>
+                <span style="color: var(--text-muted); font-size: 13px;"> — Agents use simulated behavior patterns. 
+                For LLM-driven trading, use the CLI simulation.</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # News ticker at the top
+    if state.current_day > 0:
+        render_news_ticker(state)
+        st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
     
     # Key Metrics Row
     st.markdown('<p class="section-title">📊 Market Overview</p>', unsafe_allow_html=True)
@@ -1601,106 +1833,156 @@ def render_overview():
         
         if state.stock_a and len(state.stock_a.price_history) > 1:
             price_data = engine.get_price_history_df()
-            
-            fig = go.Figure()
-            
-            # Stock A
-            fig.add_trace(go.Scatter(
-                x=price_data["days"],
-                y=price_data["stock_a"],
-                name="Stock A",
-                line=dict(color="#10b981", width=3),
-                fill='tozeroy',
-                fillcolor='rgba(16,185,129,0.08)',
-                hovertemplate='Day %{x}<br>Stock A: $%{y:.2f}<extra></extra>'
-            ))
-            
-            # Stock B
-            fig.add_trace(go.Scatter(
-                x=price_data["days"],
-                y=price_data["stock_b"],
-                name="Stock B",
-                line=dict(color="#3b82f6", width=3),
-                fill='tozeroy',
-                fillcolor='rgba(59,130,246,0.08)',
-                hovertemplate='Day %{x}<br>Stock B: $%{y:.2f}<extra></extra>'
-            ))
-            
-            fig.update_layout(
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='#a1a1aa', family='Inter'),
-                legend=dict(
-                    orientation="h",
-                    yanchor="bottom",
-                    y=1.02,
-                    xanchor="right",
-                    x=1,
-                    bgcolor='rgba(0,0,0,0)',
-                    font=dict(size=12)
-                ),
-                margin=dict(l=0, r=0, t=50, b=0),
-                xaxis=dict(
-                    showgrid=True,
-                    gridcolor='rgba(255,255,255,0.04)',
-                    title=dict(text="Trading Day", font=dict(size=11)),
-                    tickfont=dict(size=10)
-                ),
-                yaxis=dict(
-                    showgrid=True,
-                    gridcolor='rgba(255,255,255,0.04)',
-                    title=dict(text="Price ($)", font=dict(size=11)),
-                    tickfont=dict(size=10),
-                    tickprefix="$"
-                ),
-                height=380,
-                hovermode='x unified'
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Stock price cards
-            pcol1, pcol2 = st.columns(2)
-            
-            with pcol1:
-                change_a = state.stock_a.change_percent
-                color_a = "#10b981" if change_a >= 0 else "#ef4444"
-                st.markdown(f"""
-                <div class="info-card" style="border-left: 4px solid #10b981;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">STOCK A</div>
-                            <div style="font-size: 28px; font-weight: 800; color: var(--text-primary);">${state.stock_a.price:.2f}</div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 18px; font-weight: 700; color: {color_a};">
-                                {'+' if change_a >= 0 else ''}{change_a:.2f}%
-                            </div>
-                            <div style="font-size: 11px; color: var(--text-dim);">from initial</div>
-                        </div>
-                    </div>
+            if not price_data:
+                st.markdown("""
+                <div class="empty-state">
+                    <div class="empty-state-icon">📈</div>
+                    <div class="empty-state-title">No Price Data Yet</div>
+                    <div class="empty-state-description">Configure and run the simulation to see price charts</div>
                 </div>
                 """, unsafe_allow_html=True)
-            
-            with pcol2:
-                change_b = state.stock_b.change_percent
-                color_b = "#10b981" if change_b >= 0 else "#ef4444"
-                st.markdown(f"""
-                <div class="info-card" style="border-left: 4px solid #3b82f6;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">STOCK B</div>
-                            <div style="font-size: 28px; font-weight: 800; color: var(--text-primary);">${state.stock_b.price:.2f}</div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 18px; font-weight: 700; color: {color_b};">
-                                {'+' if change_b >= 0 else ''}{change_b:.2f}%
+            else:
+                # Get actual stock names and metadata
+                stock_a_name = state.stock_a.name
+                stock_b_name = state.stock_b.name if state.stock_b else "ZapTech"
+                stock_a_meta = PRIMARY_STOCKS.get(stock_a_name, {"color": "#f59e0b", "emoji": "⛽"})
+                stock_b_meta = PRIMARY_STOCKS.get(stock_b_name, {"color": "#3b82f6", "emoji": "⚡"})
+                
+                fig = go.Figure()
+
+                # Stock A (primary)
+                fig.add_trace(go.Scatter(
+                    x=price_data["days"],
+                    y=price_data["stock_a"],
+                    name=f"{stock_a_meta.get('emoji', '⛽')} {stock_a_name}",
+                    line=dict(color=stock_a_meta.get('color', '#f59e0b'), width=3),
+                    fill='tozeroy',
+                    fillcolor=f"rgba({int(stock_a_meta.get('color', '#f59e0b').lstrip('#')[0:2], 16)},{int(stock_a_meta.get('color', '#f59e0b').lstrip('#')[2:4], 16)},{int(stock_a_meta.get('color', '#f59e0b').lstrip('#')[4:6], 16)},0.08)",
+                    hovertemplate=f'Day %{{x}}<br>{stock_a_name}: $%{{y:.2f}}<extra></extra>'
+                ))
+
+                # Stock B (secondary)
+                fig.add_trace(go.Scatter(
+                    x=price_data["days"],
+                    y=price_data["stock_b"],
+                    name=f"{stock_b_meta.get('emoji', '⚡')} {stock_b_name}",
+                    line=dict(color=stock_b_meta.get('color', '#3b82f6'), width=3),
+                    fill='tozeroy',
+                    fillcolor=f"rgba({int(stock_b_meta.get('color', '#3b82f6').lstrip('#')[0:2], 16)},{int(stock_b_meta.get('color', '#3b82f6').lstrip('#')[2:4], 16)},{int(stock_b_meta.get('color', '#3b82f6').lstrip('#')[4:6], 16)},0.08)",
+                    hovertemplate=f'Day %{{x}}<br>{stock_b_name}: $%{{y:.2f}}<extra></extra>'
+                ))
+
+                # Event overlays (recent and high-impact)
+                if state.events:
+                    severity_colors = {
+                        "LOW": "rgba(16,185,129,0.6)",
+                        "MEDIUM": "rgba(245,158,11,0.7)",
+                        "HIGH": "rgba(239,68,68,0.8)"
+                    }
+                    event_candidates = [e for e in state.events if e.day <= state.current_day]
+                    if not event_candidates:
+                        event_candidates = state.events
+                    for e in event_candidates[:6]:
+                        fig.add_vline(
+                            x=e.day,
+                            line_width=1,
+                            line_dash="dot",
+                            line_color=severity_colors.get(e.severity, "rgba(148,163,184,0.6)"),
+                            annotation_text=e.title,
+                            annotation_position="top left",
+                            annotation_font_size=10,
+                            annotation_font_color=severity_colors.get(e.severity, "#94a3b8")
+                        )
+
+                fig.update_layout(
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    font=dict(color='#a1a1aa', family='Inter'),
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.02,
+                        xanchor="right",
+                        x=1,
+                        bgcolor='rgba(0,0,0,0)',
+                        font=dict(size=12)
+                    ),
+                    margin=dict(l=0, r=0, t=50, b=0),
+                    xaxis=dict(
+                        showgrid=True,
+                        gridcolor='rgba(255,255,255,0.04)',
+                        title=dict(text="Trading Day", font=dict(size=11)),
+                        tickfont=dict(size=10)
+                    ),
+                    yaxis=dict(
+                        showgrid=True,
+                        gridcolor='rgba(255,255,255,0.04)',
+                        title=dict(text="Price ($)", font=dict(size=11)),
+                        tickfont=dict(size=10),
+                        tickprefix="$"
+                    ),
+                    height=380,
+                    hovermode='x unified'
+                )
+
+                st.plotly_chart(fig, width='stretch')
+
+                # Stock price cards
+                pcol1, pcol2 = st.columns(2)
+                
+                # Get stock metadata
+                stock_a_name = state.stock_a.name
+                stock_b_name = state.stock_b.name if state.stock_b else "ZapTech"
+                stock_a_meta = PRIMARY_STOCKS.get(stock_a_name, {"color": "#f59e0b", "emoji": "⛽", "sector": "Energy"})
+                stock_b_meta = PRIMARY_STOCKS.get(stock_b_name, {"color": "#3b82f6", "emoji": "⚡", "sector": "Tech"})
+
+                with pcol1:
+                    change_a = state.stock_a.change_percent
+                    color_a = "#10b981" if change_a >= 0 else "#ef4444"
+                    st.markdown(f"""
+                    <div class="info-card" style="border-left: 4px solid {stock_a_meta.get('color', '#f59e0b')};">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 16px;">{stock_a_meta.get('emoji', '⛽')}</span>
+                                    {stock_a_name.upper()}
+                                </div>
+                                <div style="font-size: 28px; font-weight: 800; color: var(--text-primary);">${state.stock_a.price:.2f}</div>
                             </div>
-                            <div style="font-size: 11px; color: var(--text-dim);">from initial</div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 18px; font-weight: 700; color: {color_a};">
+                                    {'+' if change_a >= 0 else ''}{change_a:.2f}%
+                                </div>
+                                <div style="font-size: 11px; color: var(--text-dim);">from initial</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
+
+                with pcol2:
+                    stock_b = state.stock_b
+                    change_b = stock_b.change_percent if stock_b else 0
+                    price_b = stock_b.price if stock_b else 0.0
+                    color_b = "#10b981" if change_b >= 0 else "#ef4444"
+                    st.markdown(f"""
+                    <div class="info-card" style="border-left: 4px solid {stock_b_meta.get('color', '#3b82f6')};">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 16px;">{stock_b_meta.get('emoji', '⚡')}</span>
+                                    {stock_b_name.upper()}
+                                </div>
+                                <div style="font-size: 28px; font-weight: 800; color: var(--text-primary);">${price_b:.2f}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 18px; font-weight: 700; color: {color_b};">
+                                    {'+' if change_b >= 0 else ''}{change_b:.2f}%
+                                </div>
+                                <div style="font-size: 11px; color: var(--text-dim);">from initial</div>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
         else:
             st.markdown("""
             <div class="empty-state">
@@ -1805,22 +2087,30 @@ def render_controls():
             with fcol2:
                 random_seed = st.number_input("Random Seed", 1, 9999, 42,
                     help="For reproducible simulations")
+
             
             st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
             
-            submitted = st.form_submit_button("💾 Apply Configuration", use_container_width=True)
+            submitted = st.form_submit_button("💾 Apply Configuration", width='stretch')
             
             if submitted:
-                engine.configure(
-                    agent_count=agent_count,
-                    total_days=total_days,
-                    volatility=volatility,
-                    event_intensity=event_intensity,
-                    loan_market_enabled=loan_enabled,
-                    random_seed=random_seed
-                )
-                st.success("✅ Configuration applied successfully!")
-                st.rerun()
+                try:
+                    engine.configure(
+                        agent_count=agent_count,
+                        total_days=total_days,
+                        volatility=volatility,
+                        event_intensity=event_intensity,
+                        loan_market_enabled=loan_enabled,
+                        random_seed=random_seed,
+                        custom_agent=st.session_state.custom_agent if st.session_state.custom_agent.get("enabled") else None,
+                        manual_events=st.session_state.manual_events
+                    )
+                    st.success("✅ Configuration applied successfully!")
+                    st.rerun()
+                except ValueError as e:
+                    st.error(f"⚠️ Configuration Error: {e}")
+                except Exception as e:
+                    st.error(f"❌ Unexpected error: {e}")
     
     with col2:
         st.markdown('<p class="section-title">🎮 Simulation Controls</p>', unsafe_allow_html=True)
@@ -1831,23 +2121,29 @@ def render_controls():
         
         with btn_cols[0]:
             run_disabled = state.status not in ["CONFIGURED", "PAUSED", "RUNNING"]
-            if st.button("▶️ Run Day", use_container_width=True, disabled=run_disabled):
-                engine.run_day()
-                st.rerun()
+            if st.button("▶️ Run Day", width='stretch', disabled=run_disabled):
+                try:
+                    with st.spinner("Simulating..."):
+                        engine.run_day()
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Simulation error: {e}")
+                    st.session_state.auto_run = False
         
         with btn_cols[1]:
             if state.status == "RUNNING":
-                if st.button("⏸️ Pause", use_container_width=True):
+                if st.button("⏸️ Pause", width='stretch'):
                     engine.pause()
                     st.rerun()
             else:
-                if st.button("⏸️ Pause", use_container_width=True, disabled=True):
+                if st.button("⏸️ Pause", width='stretch', disabled=True):
                     pass
         
         with btn_cols[2]:
             reset_disabled = state.status == "IDLE"
-            if st.button("🔄 Reset", use_container_width=True, disabled=reset_disabled):
+            if st.button("🔄 Reset", width='stretch', disabled=reset_disabled):
                 engine.reset()
+                st.session_state.auto_run = False
                 st.rerun()
         
         # Auto-run
@@ -1857,10 +2153,27 @@ def render_controls():
             auto_run = st.toggle("⚡ Auto-advance simulation", value=st.session_state.auto_run,
                 help="Automatically advance simulation every 2 seconds")
             st.session_state.auto_run = auto_run
+
+            st.session_state.sim_speed = st.select_slider(
+                "Simulation Speed",
+                options=["Slow", "Normal", "Fast", "Ultra"],
+                value=st.session_state.sim_speed,
+                help="Controls how quickly days advance during auto-run"
+            )
             
             if auto_run and state.status != "COMPLETED":
-                engine.run_day()
-                time.sleep(1.5)
+                delay = {
+                    "Slow": 2.5,
+                    "Normal": 1.5,
+                    "Fast": 0.7,
+                    "Ultra": 0.25
+                }.get(st.session_state.sim_speed, 1.5)
+                try:
+                    engine.run_day()
+                except Exception as e:
+                    st.error(f"❌ Auto-run error: {e}")
+                    st.session_state.auto_run = False
+                time.sleep(delay)
                 st.rerun()
         
         # Status card
@@ -1878,18 +2191,74 @@ def render_controls():
             <p><strong>Loan Market:</strong> {'Enabled' if state.loan_market_enabled else 'Disabled'}</p>
         </div>
         """, unsafe_allow_html=True)
+
+        # Rewind control
+        if state.snapshots:
+            st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+            with st.expander("⏪ Rewind Simulation", expanded=False):
+                days = sorted({s["day"] for s in state.snapshots})
+                target_day = st.selectbox("Select Day", days, index=max(0, len(days) - 1))
+                if st.button("Rewind to Day", width='stretch') and target_day is not None:
+                    engine.rewind_to_day(int(target_day))
+                    st.success(f"Rewound to Day {target_day}.")
+                    st.rerun()
+
+        # Manual events list
+        if st.session_state.manual_events:
+            st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+            st.markdown('<p class="section-subtitle">🧩 Manual Events Queue</p>', unsafe_allow_html=True)
+            for idx, evt in enumerate(st.session_state.manual_events[:6]):
+                st.markdown(f"""
+                <div class="info-card" style="padding: 12px 16px;">
+                    <div style="display:flex; justify-content: space-between; align-items:center;">
+                        <div>
+                            <div style="font-weight: 700; color: var(--text-primary);">Day {evt['day']} · {evt['title']}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">{evt['event_type'].title()} · {evt['severity']}</div>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-dim);">Manual</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            if st.button("🧹 Clear Manual Events", width='stretch'):
+                st.session_state.manual_events = []
+                st.rerun()
+
+        # Manual event creator
+        st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+        with st.expander("➕ Add Manual Event", expanded=False):
+            with st.form("manual_event_form", border=False):
+                mcol1, mcol2 = st.columns(2)
+                with mcol1:
+                    event_day = st.number_input("Event Day", 1, max(10, state.total_days if state.total_days else 10), 1)
+                    event_type = st.selectbox("Event Type", ["macro", "sentiment", "corporate"], index=0)
+                    severity = st.selectbox("Severity", ["LOW", "MEDIUM", "HIGH"], index=1)
+                with mcol2:
+                    event_title = st.text_input("Event Title", value="Inflation Surprise")
+                    event_description = st.text_area("Event Description", value="CPI print comes in hotter than expected.")
+                    event_impact = st.text_input("Expected Impact", value="Higher volatility and sector rotation expected")
+
+                if st.form_submit_button("Add Event", width='stretch'):
+                    st.session_state.manual_events.append({
+                        "day": int(event_day),
+                        "event_type": event_type,
+                        "title": event_title.strip() or "Manual Event",
+                        "description": event_description.strip() or "User-defined market event",
+                        "severity": severity,
+                        "impact": event_impact.strip() or "User-defined impact"
+                    })
+                    st.success("Manual event added. Apply configuration to include it.")
         
         # Quick actions
         st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
         
         qcol1, qcol2 = st.columns(2)
         with qcol1:
-            if st.button("📖 Guidelines", use_container_width=True, type="secondary"):
+            if st.button("📖 Guidelines", width='stretch', type="secondary"):
                 st.session_state.show_guidelines = True
                 st.session_state.app_started = False
                 st.rerun()
         with qcol2:
-            if st.button("🏠 Home", use_container_width=True, type="secondary"):
+            if st.button("🏠 Home", width='stretch', type="secondary"):
                 st.session_state.app_started = False
                 st.rerun()
 
@@ -1911,7 +2280,54 @@ def render_market():
         """, unsafe_allow_html=True)
         return
     
-    st.markdown('<p class="section-title">📈 Market Analysis</p>', unsafe_allow_html=True)
+    # Header with export button
+    header_col1, header_col2 = st.columns([3, 1])
+    with header_col1:
+        st.markdown('<p class="section-title">📈 Market Analysis</p>', unsafe_allow_html=True)
+    with header_col2:
+        # Data export dropdown
+        export_format = st.selectbox("Export Data", ["Select...", "CSV", "JSON"], key="market_export_format", label_visibility="collapsed")
+        if export_format == "CSV":
+            # Export price history as CSV
+            price_data = engine.get_price_history_df()
+            if price_data:
+                import io
+                csv_buffer = io.StringIO()
+                pd.DataFrame(price_data).to_csv(csv_buffer, index=False)
+                st.download_button(
+                    "⬇️ Download CSV",
+                    data=csv_buffer.getvalue(),
+                    file_name=f"stockai_market_data_{state.current_day}.csv",
+                    mime="text/csv",
+                    width='stretch'
+                )
+        elif export_format == "JSON":
+            # Export comprehensive state as JSON
+            export_data = {
+                "simulation_day": state.current_day,
+                "status": state.status,
+                "stocks": {
+                    "stock_a": {"name": state.stock_a.name, "price": state.stock_a.price, "change": state.stock_a.change_percent},
+                    "stock_b": {"name": state.stock_b.name, "price": state.stock_b.price, "change": state.stock_b.change_percent} if state.stock_b else None
+                },
+                "agents_summary": {
+                    "total": len(state.agents),
+                    "active": state.active_agents,
+                    "bankrupt": len([a for a in state.agents if a.is_bankrupt])
+                },
+                "events": [{"day": e.day, "title": e.title, "severity": e.severity} for e in state.events[-10:]]
+            }
+            st.download_button(
+                "⬇️ Download JSON",
+                data=json.dumps(export_data, indent=2),
+                file_name=f"stockai_snapshot_{state.current_day}.json",
+                mime="application/json",
+                width='stretch'
+            )
+    
+    # Get stock metadata from the universe
+    stock_a_meta = PRIMARY_STOCKS.get(state.stock_a.name, {"sector": "Energy", "emoji": "⛽", "description": "Established company"})
+    stock_b_meta = PRIMARY_STOCKS.get(state.stock_b.name if state.stock_b else "ZapTech", {"sector": "Tech", "emoji": "⚡", "description": "Tech startup"})
     
     # Calculate high/low safely
     def get_high_low(price_history):
@@ -1935,10 +2351,14 @@ def render_market():
         arrow_a = "↑" if change_a >= 0 else "↓"
         
         st.markdown(f"""
-        <div class="metric-card" style="text-align: left; padding: 28px;">
+        <div class="metric-card" style="text-align: left; padding: 28px; border-left: 4px solid {stock_a_meta.get('color', '#f59e0b')};">
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <div>
-                    <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px; letter-spacing: 1px;">STOCK A</div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <span style="font-size: 24px;">{stock_a_meta.get('emoji', '⛽')}</span>
+                        <span style="font-size: 13px; color: var(--text-muted); letter-spacing: 1px;">{state.stock_a.name.upper()}</span>
+                        <span style="font-size: 10px; padding: 3px 8px; background: var(--bg-glass); border-radius: 20px; color: var(--text-dim);">{stock_a_meta.get('sector', 'Energy')}</span>
+                    </div>
                     <div style="font-size: 42px; font-weight: 800; color: var(--text-primary);">${state.stock_a.price:.2f}</div>
                 </div>
                 <div style="text-align: right;">
@@ -1960,31 +2380,42 @@ def render_market():
                     <div style="font-size: 14px; font-weight: 600; color: #ef4444;">${low_a:.2f}</div>
                 </div>
                 <div>
-                    <div style="font-size: 11px; color: var(--text-dim);">VOLUME</div>
-                    <div style="font-size: 14px; font-weight: 600; color: var(--text-secondary);">—</div>
+                    <div style="font-size: 11px; color: var(--text-dim);">VOLATILITY</div>
+                    <div style="font-size: 14px; font-weight: 600; color: var(--text-secondary);">{stock_a_meta.get('volatility', 0.8)}x</div>
                 </div>
+            </div>
+            <div style="margin-top: 12px; font-size: 12px; color: var(--text-dim);">
+                {stock_a_meta.get('description', 'Established company')}
             </div>
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
-        change_b = state.stock_b.change_percent
+        stock_b = state.stock_b
+        change_b = stock_b.change_percent if stock_b else 0
+        price_b = stock_b.price if stock_b else 0.0
+        initial_b = stock_b.initial_price if stock_b else 0.0
+        stock_b_name = stock_b.name if stock_b else "ZapTech"
         color_b = "#10b981" if change_b >= 0 else "#ef4444"
         arrow_b = "↑" if change_b >= 0 else "↓"
         
         st.markdown(f"""
-        <div class="metric-card" style="text-align: left; padding: 28px;">
+        <div class="metric-card" style="text-align: left; padding: 28px; border-left: 4px solid {stock_b_meta.get('color', '#3b82f6')};">
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <div>
-                    <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px; letter-spacing: 1px;">STOCK B</div>
-                    <div style="font-size: 42px; font-weight: 800; color: var(--text-primary);">${state.stock_b.price:.2f}</div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <span style="font-size: 24px;">{stock_b_meta.get('emoji', '⚡')}</span>
+                        <span style="font-size: 13px; color: var(--text-muted); letter-spacing: 1px;">{stock_b_name.upper()}</span>
+                        <span style="font-size: 10px; padding: 3px 8px; background: var(--bg-glass); border-radius: 20px; color: var(--text-dim);">{stock_b_meta.get('sector', 'Tech')}</span>
+                    </div>
+                    <div style="font-size: 42px; font-weight: 800; color: var(--text-primary);">${price_b:.2f}</div>
                 </div>
                 <div style="text-align: right;">
                     <div style="font-size: 24px; font-weight: 700; color: {color_b};">
                         {arrow_b} {abs(change_b):.2f}%
                     </div>
                     <div style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">
-                        Initial: ${state.stock_b.initial_price:.2f}
+                        Initial: ${initial_b:.2f}
                     </div>
                 </div>
             </div>
@@ -1998,9 +2429,12 @@ def render_market():
                     <div style="font-size: 14px; font-weight: 600; color: #ef4444;">${low_b:.2f}</div>
                 </div>
                 <div>
-                    <div style="font-size: 11px; color: var(--text-dim);">VOLUME</div>
-                    <div style="font-size: 14px; font-weight: 600; color: var(--text-secondary);">—</div>
+                    <div style="font-size: 11px; color: var(--text-dim);">VOLATILITY</div>
+                    <div style="font-size: 14px; font-weight: 600; color: var(--text-secondary);">{stock_b_meta.get('volatility', 1.3)}x</div>
                 </div>
+            </div>
+            <div style="margin-top: 12px; font-size: 12px; color: var(--text-dim);">
+                {stock_b_meta.get('description', 'Tech startup')}
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -2009,45 +2443,178 @@ def render_market():
     
     # Detailed chart
     price_data = engine.get_price_history_df()
+    if not price_data:
+        st.markdown("""
+        <div class="empty-state">
+            <div class="empty-state-icon">📉</div>
+            <div class="empty-state-title">No Price Data Yet</div>
+            <div class="empty-state-description">Run at least one trading day to see market charts</div>
+        </div>
+        """, unsafe_allow_html=True)
+        return
+    
+    # Get actual stock names for chart labels
+    stock_a_name = state.stock_a.name
+    stock_b_name = state.stock_b.name if state.stock_b else "ZapTech"
     
     fig = make_subplots(
         rows=2, cols=1,
-        row_heights=[0.75, 0.25],
+        row_heights=[0.7, 0.3],
         shared_xaxes=True,
         vertical_spacing=0.08,
-        subplot_titles=("Price History", "Price Spread (B - A)")
+        subplot_titles=("", "")
     )
     
-    # Price lines
+    # Calculate moving averages for smoother trend visualization
+    stock_a_prices = price_data["stock_a"]
+    stock_b_prices = price_data["stock_b"]
+    days = price_data["days"]
+    
+    def moving_average(data, window=5):
+        if len(data) < window:
+            return data
+        result = []
+        for i in range(len(data)):
+            if i < window - 1:
+                result.append(sum(data[:i+1]) / (i+1))
+            else:
+                result.append(sum(data[i-window+1:i+1]) / window)
+        return result
+    
+    # Stock A - Area chart with gradient effect
     fig.add_trace(go.Scatter(
-        x=price_data["days"],
-        y=price_data["stock_a"],
-        name="Stock A",
-        line=dict(color="#10b981", width=2.5),
-        hovertemplate='$%{y:.2f}<extra>Stock A</extra>'
+        x=days,
+        y=stock_a_prices,
+        name=stock_a_name,
+        mode='lines',
+        line=dict(color=stock_a_meta.get('color', '#f59e0b'), width=2.5),
+        fill='tozeroy',
+        fillcolor=f"rgba({int(stock_a_meta.get('color', '#f59e0b')[1:3], 16)}, {int(stock_a_meta.get('color', '#f59e0b')[3:5], 16)}, {int(stock_a_meta.get('color', '#f59e0b')[5:7], 16)}, 0.1)",
+        hovertemplate=f'<b>{stock_a_name}</b><br>Day %{{x}}<br>Price: $%{{y:.2f}}<extra></extra>'
     ), row=1, col=1)
+    
+    # Stock A Moving Average
+    if len(stock_a_prices) >= 3:
+        ma_a = moving_average(stock_a_prices, 5)
+        fig.add_trace(go.Scatter(
+            x=days,
+            y=ma_a,
+            name=f"{stock_a_name} MA(5)",
+            mode='lines',
+            line=dict(color=stock_a_meta.get('color', '#f59e0b'), width=1, dash='dot'),
+            opacity=0.6,
+            hovertemplate=f'<b>{stock_a_name} MA</b><br>$%{{y:.2f}}<extra></extra>'
+        ), row=1, col=1)
+    
+    # Stock B - Area chart with gradient effect
+    fig.add_trace(go.Scatter(
+        x=days,
+        y=stock_b_prices,
+        name=stock_b_name,
+        mode='lines',
+        line=dict(color=stock_b_meta.get('color', '#3b82f6'), width=2.5),
+        fill='tozeroy',
+        fillcolor=f"rgba({int(stock_b_meta.get('color', '#3b82f6')[1:3], 16)}, {int(stock_b_meta.get('color', '#3b82f6')[3:5], 16)}, {int(stock_b_meta.get('color', '#3b82f6')[5:7], 16)}, 0.1)",
+        hovertemplate=f'<b>{stock_b_name}</b><br>Day %{{x}}<br>Price: $%{{y:.2f}}<extra></extra>'
+    ), row=1, col=1)
+    
+    # Stock B Moving Average
+    if len(stock_b_prices) >= 3:
+        ma_b = moving_average(stock_b_prices, 5)
+        fig.add_trace(go.Scatter(
+            x=days,
+            y=ma_b,
+            name=f"{stock_b_name} MA(5)",
+            mode='lines',
+            line=dict(color=stock_b_meta.get('color', '#3b82f6'), width=1, dash='dot'),
+            opacity=0.6,
+            hovertemplate=f'<b>{stock_b_name} MA</b><br>$%{{y:.2f}}<extra></extra>'
+        ), row=1, col=1)
+    
+    # Add range selector buttons
+    range_buttons = []
+    if len(days) > 10:
+        range_buttons = [
+            dict(count=5, label="5D", step="day", stepmode="backward"),
+            dict(count=10, label="10D", step="day", stepmode="backward"),
+            dict(step="all", label="All")
+        ]
     
     fig.add_trace(go.Scatter(
         x=price_data["days"],
         y=price_data["stock_b"],
-        name="Stock B",
-        line=dict(color="#3b82f6", width=2.5),
-        hovertemplate='$%{y:.2f}<extra>Stock B</extra>'
+        name=stock_b_name,
+        line=dict(color=stock_b_meta.get('color', '#3b82f6'), width=2.5),
+        hovertemplate='$%{y:.2f}<extra>' + stock_b_name + '</extra>'
     ), row=1, col=1)
+
+    # Event overlays (market view) with improved styling
+    if state.events:
+        severity_colors = {
+            "LOW": "rgba(16,185,129,0.5)",
+            "MEDIUM": "rgba(245,158,11,0.6)",
+            "HIGH": "rgba(239,68,68,0.7)"
+        }
+        event_candidates = [e for e in state.events if e.day <= state.current_day]
+        if not event_candidates:
+            event_candidates = state.events
+        for e in event_candidates[:6]:
+            # Add shaded region for event impact
+            fig.add_vrect(
+                x0=e.day - 0.5,
+                x1=e.day + 0.5,
+                fillcolor=severity_colors.get(e.severity, "rgba(148,163,184,0.2)"),
+                opacity=0.3,
+                line_width=0,
+                row=1, col=1
+            )
+            fig.add_vline(
+                x=e.day,
+                line_width=2,
+                line_dash="solid",
+                line_color=severity_colors.get(e.severity, "rgba(148,163,184,0.6)"),
+                annotation_text=f"📰 {e.title[:20]}...",
+                annotation_position="top left",
+                annotation_font_size=9,
+                annotation_font_color="#a1a1aa",
+                row=1, col=1
+            )
     
-    # Spread
-    if len(price_data["stock_a"]) > 0:
-        spread = [b - a for a, b in zip(price_data["stock_a"], price_data["stock_b"])]
-        colors = ['#10b981' if s >= 0 else '#ef4444' for s in spread]
+    # Improved Spread/Volume chart - Waterfall style
+    if len(stock_a_prices) > 0:
+        spread = [b - a for a, b in zip(stock_a_prices, stock_b_prices)]
+        
+        # Create gradient colors based on spread values
+        max_spread = max(abs(min(spread)), abs(max(spread))) if spread else 1
+        colors = []
+        for s in spread:
+            if s >= 0:
+                intensity = min(1, abs(s) / max_spread * 0.8 + 0.2)
+                colors.append(f'rgba(16, 185, 129, {intensity})')
+            else:
+                intensity = min(1, abs(s) / max_spread * 0.8 + 0.2)
+                colors.append(f'rgba(239, 68, 68, {intensity})')
         
         fig.add_trace(go.Bar(
-            x=price_data["days"],
+            x=days,
             y=spread,
-            name="Spread",
-            marker_color=colors,
-            showlegend=False,
-            hovertemplate='$%{y:.2f}<extra>Spread</extra>'
+            name="Price Spread",
+            marker=dict(
+                color=colors,
+                line=dict(width=0)
+            ),
+            showlegend=True,
+            hovertemplate='<b>Spread</b><br>Day %{x}<br>Δ $%{y:.2f}<extra></extra>'
         ), row=2, col=1)
+        
+        # Add zero line
+        fig.add_hline(
+            y=0,
+            line_width=1,
+            line_dash="solid",
+            line_color="rgba(255,255,255,0.2)",
+            row=2, col=1
+        )
     
     fig.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
@@ -2059,19 +2626,605 @@ def render_market():
             y=1.02,
             xanchor="right",
             x=1,
-            bgcolor='rgba(0,0,0,0)'
+            bgcolor='rgba(0,0,0,0)',
+            font=dict(size=11)
         ),
-        margin=dict(l=0, r=0, t=60, b=0),
-        height=500,
-        hovermode='x unified'
+        margin=dict(l=10, r=10, t=60, b=10),
+        height=520,
+        hovermode='x unified',
+        hoverlabel=dict(
+            bgcolor="rgba(12, 12, 18, 0.95)",
+            bordercolor="rgba(255,255,255,0.1)",
+            font=dict(color="#f8fafc", size=12)
+        )
     )
     
-    fig.update_xaxes(showgrid=True, gridcolor='rgba(255,255,255,0.04)')
-    fig.update_yaxes(showgrid=True, gridcolor='rgba(255,255,255,0.04)')
-    fig.update_yaxes(tickprefix="$", row=1, col=1)
-    fig.update_yaxes(tickprefix="$", row=2, col=1)
+    # Update axes styling
+    fig.update_xaxes(showgrid=True, gridcolor='rgba(255,255,255,0.03)', zeroline=False)
+    fig.update_yaxes(showgrid=True, gridcolor='rgba(255,255,255,0.03)', zeroline=False)
+    fig.update_yaxes(tickprefix="$", tickfont=dict(size=10), row=1, col=1)
+    fig.update_yaxes(tickprefix="$", tickfont=dict(size=10), title_text="Spread", title_font=dict(size=10), row=2, col=1)
+    fig.update_xaxes(title_text="Trading Day", title_font=dict(size=10), row=2, col=1)
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
+
+    # Extra stocks (fun off-brand names with full metadata)
+    if state.extra_stocks:
+        st.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
+        st.markdown('<p class="section-title">🌐 Extended Market Universe</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-subtitle">Off-brand parody stocks from across all sectors</p>', unsafe_allow_html=True)
+        
+        # Group stocks by sector
+        all_stocks = get_all_stocks()
+        
+        cols = st.columns(3)
+        for idx, stock in enumerate(state.extra_stocks):
+            col = cols[idx % 3]
+            stock_meta = STOCK_UNIVERSE.get(stock.name, {"sector": "Other", "emoji": "📊", "color": "#8b5cf6", "description": "Stock"})
+            with col:
+                change = stock.change_percent
+                color = "#10b981" if change >= 0 else "#ef4444"
+                sector_class = f"sector-{stock_meta.get('sector', 'other').lower().replace(' ', '-')}"
+                st.markdown(f"""
+                <div class="info-card stock-card {sector_class}" style="border-left: 4px solid {stock_meta.get('color', '#8b5cf6')};">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <span style="font-size: 20px;">{stock_meta.get('emoji', '📊')}</span>
+                                <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">{stock.name}</span>
+                            </div>
+                            <div style="font-size: 10px; padding: 2px 8px; background: var(--bg-glass); border-radius: 12px; color: var(--text-dim); display: inline-block;">{stock_meta.get('sector', 'Other')}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 22px; font-weight: 800; color: var(--text-primary);">${stock.price:.2f}</div>
+                            <div style="font-size: 13px; font-weight: 600; color: {color};">{'+' if change >= 0 else ''}{change:.2f}%</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 11px; color: var(--text-dim); line-height: 1.4;">
+                        {stock_meta.get('description', '')[:60]}{'...' if len(stock_meta.get('description', '')) > 60 else ''}
+                    </div>
+                    <div style="margin-top: 8px; display: flex; gap: 12px; font-size: 10px; color: var(--text-muted);">
+                        <span>Vol: {stock_meta.get('volatility', 1.0)}x</span>
+                        <span>Init: ${stock.initial_price:.2f}</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        # Mini chart grid for extra stocks
+        if price_data and price_data.get("extra_stocks"):
+            st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+            chart_cols = st.columns(3)
+            for idx, (name, series) in enumerate(price_data["extra_stocks"].items()):
+                with chart_cols[idx % 3]:
+                    fig_small = go.Figure()
+                    fig_small.add_trace(go.Scatter(
+                        x=price_data["days"],
+                        y=series,
+                        line=dict(color="#8b5cf6", width=2),
+                        hovertemplate=f"{name}: $%{{y:.2f}}<extra></extra>"
+                    ))
+                    if state.events:
+                        severity_colors = {
+                            "LOW": "rgba(16,185,129,0.6)",
+                            "MEDIUM": "rgba(245,158,11,0.7)",
+                            "HIGH": "rgba(239,68,68,0.8)"
+                        }
+                        event_candidates = [e for e in state.events if e.day <= state.current_day]
+                        if not event_candidates:
+                            event_candidates = state.events
+                        for e in event_candidates[:4]:
+                            fig_small.add_vline(
+                                x=e.day,
+                                line_width=1,
+                                line_dash="dot",
+                                line_color=severity_colors.get(e.severity, "rgba(148,163,184,0.6)")
+                            )
+                    fig_small.update_layout(
+                        title=dict(text=name, font=dict(size=12, color="#a1a1aa")),
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        margin=dict(l=0, r=0, t=30, b=0),
+                        height=160,
+                        showlegend=False
+                    )
+                    fig_small.update_xaxes(showgrid=False, showticklabels=False)
+                    fig_small.update_yaxes(showgrid=False, showticklabels=False)
+                    st.plotly_chart(fig_small, width='stretch')
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PERSONALIZATION TAB
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def get_default_custom_agent():
+    """Return default custom agent settings."""
+    return {
+        "enabled": False,
+        "name": "",
+        "nickname": "",
+        "display_name": "Custom Agent",
+        "character": "Balanced",
+        "herding_level": "Medium",
+        "loss_aversion_level": "Medium",
+        "overconfidence_level": "Low",
+        "anchoring_level": "Medium",
+        "risk_tolerance": 50,
+        "trading_frequency": "Medium",
+        "initial_capital": 10000,
+        "strategy_preference": "Mixed",
+        "avatar_type": "icon",  # "icon" or "image"
+        "avatar_icon": "fox",   # Selected icon name
+    }
+
+# Avatar icons with animated SVG representations
+AVATAR_ICONS = {
+    "fox": {"emoji": "🦊", "name": "Fox", "color": "#f97316", "trait": "Cunning"},
+    "bear": {"emoji": "🐻", "name": "Bear", "color": "#78716c", "trait": "Cautious"},
+    "bull": {"emoji": "🐂", "name": "Bull", "color": "#10b981", "trait": "Aggressive"},
+    "wolf": {"emoji": "🐺", "name": "Wolf", "color": "#6366f1", "trait": "Strategic"},
+    "eagle": {"emoji": "🦅", "name": "Eagle", "color": "#eab308", "trait": "Visionary"},
+    "owl": {"emoji": "🦉", "name": "Owl", "color": "#8b5cf6", "trait": "Analytical"},
+    "shark": {"emoji": "🦈", "name": "Shark", "color": "#3b82f6", "trait": "Ruthless"},
+    "lion": {"emoji": "🦁", "name": "Lion", "color": "#f59e0b", "trait": "Bold"},
+}
+
+def render_personalize():
+    """Render agent personalization page with improved layout."""
+    state = engine.get_state()
+    
+    # Initialize avatar icon state
+    if "avatar_icon_selected" not in st.session_state:
+        st.session_state.avatar_icon_selected = st.session_state.custom_agent.get("avatar_icon", "fox")
+    if "avatar_type" not in st.session_state:
+        st.session_state.avatar_type = st.session_state.custom_agent.get("avatar_type", "icon")
+
+    # Header Section
+    st.markdown('<p class="section-title">🎭 Create Your Agent</p>', unsafe_allow_html=True)
+    st.markdown('<p class="section-subtitle">Design a personalized trading agent with unique traits and appearance</p>', unsafe_allow_html=True)
+    
+    # Main 2-column layout: Settings (left) | Preview (right)
+    settings_col, preview_col = st.columns([1.3, 1])
+    
+    with settings_col:
+        # ═══════════════════════════════════════════════════════════════════════
+        # LEFT SIDE: SETTINGS PANEL
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        # Section 1: Identity
+        with st.expander("👤 **Identity & Avatar**", expanded=True):
+            enable = st.toggle("Enable Custom Agent", value=st.session_state.custom_agent.get("enabled", False),
+                              help="When enabled, your custom agent will participate in simulations")
+            
+            name_cols = st.columns(2)
+            with name_cols[0]:
+                name = st.text_input("Agent Name", value=st.session_state.custom_agent.get("name", ""), 
+                                    placeholder="e.g., Rajesh", help="Primary name") or ""
+            with name_cols[1]:
+                nickname = st.text_input("Title/Nickname", value=st.session_state.custom_agent.get("nickname", ""), 
+                                        placeholder='e.g., The Fox', help="Optional title") or ""
+            
+            st.markdown("**Choose Avatar**")
+            avatar_type = st.radio("Avatar Type", ["🎨 Select Icon", "📷 Upload Image"], 
+                                   index=0 if st.session_state.avatar_type == "icon" else 1,
+                                   horizontal=True, label_visibility="collapsed")
+            
+            if "Select Icon" in avatar_type:
+                st.session_state.avatar_type = "icon"
+                st.markdown('<p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Click an icon to select your agent\'s avatar</p>', unsafe_allow_html=True)
+                
+                # Icon selection grid - 4 columns
+                icon_cols = st.columns(4)
+                for idx, (icon_key, icon_data) in enumerate(AVATAR_ICONS.items()):
+                    with icon_cols[idx % 4]:
+                        is_selected = st.session_state.avatar_icon_selected == icon_key
+                        border_style = f"3px solid {icon_data['color']}" if is_selected else "2px solid rgba(255,255,255,0.1)"
+                        bg_style = f"rgba({int(icon_data['color'][1:3], 16)}, {int(icon_data['color'][3:5], 16)}, {int(icon_data['color'][5:7], 16)}, 0.15)" if is_selected else "var(--bg-tertiary)"
+                        
+                        if st.button(f"{icon_data['emoji']}", key=f"icon_{icon_key}", 
+                                    help=f"{icon_data['name']} - {icon_data['trait']}",
+                                    type="primary" if is_selected else "secondary"):
+                            st.session_state.avatar_icon_selected = icon_key
+                            st.rerun()
+                        
+                        st.markdown(f"<p style='text-align:center; font-size:10px; color:var(--text-muted); margin-top:-8px;'>{icon_data['name']}</p>", unsafe_allow_html=True)
+            else:
+                st.session_state.avatar_type = "image"
+                uploaded_avatar = st.file_uploader("Upload Avatar Image", type=["png", "jpg", "jpeg"], 
+                                                   accept_multiple_files=False, key="avatar_upload")
+                if uploaded_avatar:
+                    st.session_state.custom_agent_avatar = uploaded_avatar.read()
+        
+        # Section 2: Personality & Strategy
+        with st.expander("🧠 **Personality & Strategy**", expanded=True):
+            ps_cols = st.columns(2)
+            with ps_cols[0]:
+                character = st.selectbox("Personality Type", ["Conservative", "Balanced", "Growth-Oriented", "Aggressive"],
+                                        index=["Conservative", "Balanced", "Growth-Oriented", "Aggressive"].index(
+                                            st.session_state.custom_agent.get("character", "Balanced")),
+                                        help="Defines overall trading approach")
+            with ps_cols[1]:
+                strategy = st.selectbox("Strategy", ["Value Investing", "Momentum", "Contrarian", "Mixed"],
+                                       index=["Value Investing", "Momentum", "Contrarian", "Mixed"].index(
+                                           st.session_state.custom_agent.get("strategy_preference", "Mixed")),
+                                       help="Preferred trading strategy")
+        
+        # Section 3: Trading Parameters
+        with st.expander("📊 **Trading Parameters**", expanded=True):
+            risk_tolerance = st.slider("Risk Tolerance", 0, 100, 
+                                      st.session_state.custom_agent.get("risk_tolerance", 50),
+                                      help="0 = Very Conservative, 100 = Very Aggressive")
+            
+            param_cols = st.columns(2)
+            with param_cols[0]:
+                trading_freq = st.selectbox("Trading Frequency", ["Low", "Medium", "High"],
+                                           index=["Low", "Medium", "High"].index(
+                                               st.session_state.custom_agent.get("trading_frequency", "Medium")))
+            with param_cols[1]:
+                initial_capital = st.number_input("Initial Capital ($)", min_value=1000, max_value=1000000, 
+                                                 value=st.session_state.custom_agent.get("initial_capital", 10000),
+                                                 step=1000)
+        
+        # Section 4: Behavioral Biases
+        with st.expander("🧬 **Behavioral Biases**", expanded=False):
+            st.markdown('<p style="font-size: 12px; color: var(--text-muted);">Psychological factors affecting decisions</p>', unsafe_allow_html=True)
+            bias_cols = st.columns(2)
+            with bias_cols[0]:
+                herding = st.selectbox("Herding", ["Low", "Medium", "High"], 
+                                      index=["Low", "Medium", "High"].index(
+                                          st.session_state.custom_agent.get("herding_level", "Medium")),
+                                      help="Tendency to follow the crowd")
+                loss_aversion = st.selectbox("Loss Aversion", ["Low", "Medium", "High"], 
+                                            index=["Low", "Medium", "High"].index(
+                                                st.session_state.custom_agent.get("loss_aversion_level", "Medium")))
+            with bias_cols[1]:
+                overconfidence = st.selectbox("Overconfidence", ["Low", "Medium", "High"], 
+                                             index=["Low", "Medium", "High"].index(
+                                                 st.session_state.custom_agent.get("overconfidence_level", "Low")))
+                anchoring = st.selectbox("Anchoring", ["Low", "Medium", "High"], 
+                                        index=["Low", "Medium", "High"].index(
+                                            st.session_state.custom_agent.get("anchoring_level", "Medium")))
+        
+        # Save Button
+        st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+        if st.button("💾 Save Agent Configuration", width='stretch', type="primary", key="save_agent_main"):
+            display_name = name.strip()
+            if nickname.strip():
+                display_name = f"{name.strip()} \"{nickname.strip()}\"" if name.strip() else f"\"{nickname.strip()}\""
+            st.session_state.custom_agent = {
+                "enabled": enable,
+                "name": name.strip(),
+                "nickname": nickname.strip(),
+                "display_name": display_name.strip() or "Custom Agent",
+                "character": character,
+                "strategy_preference": strategy,
+                "risk_tolerance": risk_tolerance,
+                "trading_frequency": trading_freq,
+                "initial_capital": initial_capital,
+                "herding_level": herding,
+                "loss_aversion_level": loss_aversion,
+                "overconfidence_level": overconfidence,
+                "anchoring_level": anchoring,
+                "avatar_type": st.session_state.avatar_type,
+                "avatar_icon": st.session_state.avatar_icon_selected,
+            }
+            save_custom_agent_profile()
+            st.success("✅ Agent saved! Enable in Controls tab to activate.")
+        
+        # Profile Management (collapsed)
+        with st.expander("📁 **Profile Management**", expanded=False):
+            mgmt_cols = st.columns(3)
+            with mgmt_cols[0]:
+                st.download_button("⬇️ Export", data=json.dumps(st.session_state.custom_agent, indent=2),
+                                  file_name="stockai_agent.json", mime="application/json", width='stretch')
+            with mgmt_cols[1]:
+                if st.button("🔄 Reset", width='stretch', key="reset_agent_profile"):
+                    st.session_state.custom_agent = get_default_custom_agent()
+                    st.session_state.custom_agent_avatar = None
+                    st.session_state.avatar_icon_selected = "fox"
+                    save_custom_agent_profile()
+                    st.rerun()
+            with mgmt_cols[2]:
+                uploaded = st.file_uploader("Import", type=["json"], key="profile_import", label_visibility="collapsed")
+            if uploaded:
+                try:
+                    payload = json.loads(uploaded.read().decode("utf-8"))
+                    if isinstance(payload, dict):
+                        merged = get_default_custom_agent()
+                        merged.update(payload)
+                        st.session_state.custom_agent = merged
+                        st.session_state.avatar_icon_selected = merged.get("avatar_icon", "fox")
+                        save_custom_agent_profile()
+                        st.success("✅ Imported!")
+                        st.rerun()
+                except Exception:
+                    st.error("Invalid file.")
+    
+    with preview_col:
+        # ═══════════════════════════════════════════════════════════════════════
+        # RIGHT SIDE: AGENT PREVIEW CARD
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        is_enabled = st.session_state.custom_agent.get("enabled", False)
+        preview_name = st.session_state.custom_agent.get("display_name") or "Custom Agent"
+        preview_character = st.session_state.custom_agent.get("character", "Balanced")
+        preview_strategy = st.session_state.custom_agent.get("strategy_preference", "Mixed")
+        preview_risk = st.session_state.custom_agent.get("risk_tolerance", 50)
+        preview_freq = st.session_state.custom_agent.get("trading_frequency", "Medium")
+        preview_capital = st.session_state.custom_agent.get("initial_capital", 10000)
+        
+        # Get selected icon
+        icon_key = st.session_state.avatar_icon_selected
+        icon_data = AVATAR_ICONS.get(icon_key, AVATAR_ICONS["fox"])
+        
+        # Status and risk colors
+        status_color = "#10b981" if is_enabled else "#6b7280"
+        risk_color = "#10b981" if preview_risk < 33 else "#f59e0b" if preview_risk < 66 else "#ef4444"
+        risk_label = "Low" if preview_risk < 33 else "Medium" if preview_risk < 66 else "High"
+        
+        # Preview Card - build HTML parts
+        icon_color = icon_data['color']
+        icon_emoji = icon_data['emoji'] if st.session_state.avatar_type == 'icon' else '📷'
+        icon_trait = icon_data['trait']
+        icon_name = icon_data['name']
+        status_bg = 'rgba(16,185,129,0.2)' if is_enabled else 'rgba(107,114,128,0.2)'
+        status_text = '● ACTIVE' if is_enabled else '○ INACTIVE'
+        
+        preview_html = f"""
+        <style>
+            @keyframes rotateGlow {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
+            @keyframes avatarPulse {{ 0%, 100% {{ transform: scale(1); }} 50% {{ transform: scale(1.05); }} }}
+        </style>
+        <div style="background: linear-gradient(135deg, var(--bg-card) 0%, rgba(30, 30, 44, 0.9) 100%); border: 1px solid var(--border-light); border-radius: 20px; padding: 32px 24px; text-align: center; position: relative; overflow: hidden;">
+            <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, {icon_color}15 0%, transparent 50%); animation: rotateGlow 10s linear infinite; pointer-events: none;"></div>
+            <div style="position: absolute; top: 16px; right: 16px; padding: 6px 14px; background: {status_bg}; border: 1px solid {status_color}50; border-radius: 20px; font-size: 12px; color: {status_color}; font-weight: 600;">{status_text}</div>
+            <div style="width: 100px; height: 100px; margin: 16px auto 20px; background: linear-gradient(135deg, {icon_color}30 0%, {icon_color}10 100%); border: 3px solid {icon_color}; border-radius: 24px; display: flex; align-items: center; justify-content: center; font-size: 52px; box-shadow: 0 8px 32px {icon_color}40; animation: avatarPulse 3s ease-in-out infinite;">{icon_emoji}</div>
+            <div style="font-size: 28px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">{preview_name}</div>
+            <div style="display: inline-block; padding: 4px 12px; background: {icon_color}20; border: 1px solid {icon_color}40; border-radius: 12px; font-size: 12px; color: {icon_color}; margin-bottom: 16px;">{icon_trait} {icon_name}</div>
+            <div style="font-size: 14px; color: var(--accent-blue); font-weight: 500; margin-bottom: 20px;">{preview_character} • {preview_strategy}</div>
+            <div style="display: flex; justify-content: center; gap: 24px; padding: 16px; background: var(--bg-tertiary); border-radius: 12px;">
+                <div style="text-align: center;"><div style="font-size: 22px; font-weight: 700; color: {risk_color};">{preview_risk}%</div><div style="font-size: 11px; color: var(--text-muted);">Risk ({risk_label})</div></div>
+                <div style="text-align: center;"><div style="font-size: 22px; font-weight: 700; color: var(--text-primary);">{preview_freq}</div><div style="font-size: 11px; color: var(--text-muted);">Frequency</div></div>
+                <div style="text-align: center;"><div style="font-size: 22px; font-weight: 700; color: var(--accent-green);">${preview_capital:,.0f}</div><div style="font-size: 11px; color: var(--text-muted);">Capital</div></div>
+            </div>
+        </div>
+        """
+        st.markdown(preview_html, unsafe_allow_html=True)
+        
+        # Custom image display (if uploaded)
+        if st.session_state.avatar_type == "image" and st.session_state.custom_agent_avatar:
+            st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+            st.image(st.session_state.custom_agent_avatar, caption="Custom Avatar", width=150)
+        
+        # Bias Profile Visualization
+        st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+        st.markdown("##### 🧬 Bias Profile")
+        
+        bias_levels = {"Low": 33, "Medium": 66, "High": 100}
+        herding_val = bias_levels.get(st.session_state.custom_agent.get("herding_level", "Medium"), 66)
+        loss_val = bias_levels.get(st.session_state.custom_agent.get("loss_aversion_level", "Medium"), 66)
+        over_val = bias_levels.get(st.session_state.custom_agent.get("overconfidence_level", "Low"), 33)
+        anchor_val = bias_levels.get(st.session_state.custom_agent.get("anchoring_level", "Medium"), 66)
+        
+        st.markdown(f"""
+        <div class="info-card" style="padding: 16px;">
+            <div style="margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span style="font-size: 12px; color: var(--text-secondary);">🐑 Herding</span>
+                    <span style="font-size: 12px; color: var(--text-muted);">{st.session_state.custom_agent.get("herding_level", "Medium")}</span>
+                </div>
+                <div style="height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden;">
+                    <div style="width: {herding_val}%; height: 100%; background: linear-gradient(90deg, #3b82f6, #8b5cf6); border-radius: 3px; transition: width 0.3s ease;"></div>
+                </div>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span style="font-size: 12px; color: var(--text-secondary);">😰 Loss Aversion</span>
+                    <span style="font-size: 12px; color: var(--text-muted);">{st.session_state.custom_agent.get("loss_aversion_level", "Medium")}</span>
+                </div>
+                <div style="height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden;">
+                    <div style="width: {loss_val}%; height: 100%; background: linear-gradient(90deg, #10b981, #f59e0b); border-radius: 3px; transition: width 0.3s ease;"></div>
+                </div>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span style="font-size: 12px; color: var(--text-secondary);">💪 Overconfidence</span>
+                    <span style="font-size: 12px; color: var(--text-muted);">{st.session_state.custom_agent.get("overconfidence_level", "Low")}</span>
+                </div>
+                <div style="height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden;">
+                    <div style="width: {over_val}%; height: 100%; background: linear-gradient(90deg, #f59e0b, #ef4444); border-radius: 3px; transition: width 0.3s ease;"></div>
+                </div>
+            </div>
+            <div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span style="font-size: 12px; color: var(--text-secondary);">⚓ Anchoring</span>
+                    <span style="font-size: 12px; color: var(--text-muted);">{st.session_state.custom_agent.get("anchoring_level", "Medium")}</span>
+                </div>
+                <div style="height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden;">
+                    <div style="width: {anchor_val}%; height: 100%; background: linear-gradient(90deg, #6366f1, #ec4899); border-radius: 3px; transition: width 0.3s ease;"></div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Live Performance (if agent in simulation)
+        if state.agents:
+            match = next((a for a in state.agents if a.name == preview_name), None)
+            if match:
+                st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+                st.markdown("##### 📈 Live Performance")
+                pnl_color = "#10b981" if match.pnl_percent >= 0 else "#ef4444"
+                st.markdown(f"""
+                <div class="info-card" style="padding: 16px; border-left: 4px solid {pnl_color};">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 24px; font-weight: 700; color: {pnl_color};">{format_percent(match.pnl_percent)}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Return</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 18px; font-weight: 600; color: var(--text-primary);">{format_currency(match.total_value)}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Total Value</div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AI ADVISOR TAB
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def render_ai_advisor():
+    """Render the AI Advisor chatbot interface."""
+    from chatbot import render_chatbot_main
+    render_chatbot_main(engine.state)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CREDITS TAB
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def render_credits():
+    """Render credits page."""
+    st.markdown('<p class="section-title">👥 Credits</p>', unsafe_allow_html=True)
+    st.markdown('<p class="section-subtitle">Meet the team behind StockAI</p>', unsafe_allow_html=True)
+
+    cols = st.columns(3)
+    members = [
+        ("Riyan Ozair", "Project Lead", "AI Systems · Frontend · Research"),
+        ("Nabeel Rizwan", "Simulation Engineer", "Market Dynamics · Backend"),
+        ("Samiullah", "Product & UX", "Interface · Storytelling · Testing")
+    ]
+    for col, (name, role, skills) in zip(cols, members):
+        with col:
+            st.markdown(f"""
+            <div class="glass-card" style="text-align: center;">
+                <div style="font-size: 20px; font-weight: 800; color: var(--text-primary);">{name}</div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">{role}</div>
+                <div style="font-size: 12px; color: var(--text-dim); margin-top: 10px;">{skills}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+    st.markdown("""
+    <div class="info-card" style="text-align: center;">
+        <div style="font-size: 14px; color: var(--text-muted);">Academic Guide</div>
+        <div style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-top: 6px;">Dr. [Your Guide Name]</div>
+        <div style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">Supervision · Research Direction</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CREDITS PAGE (Standalone - accessed via footer link)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def render_credits_page():
+    """Render standalone credits page with back navigation."""
+    # Inject styles
+    st.markdown(get_all_styles(), unsafe_allow_html=True)
+    
+    # Back button
+    col1, col2, col3 = st.columns([1, 3, 1])
+    with col1:
+        if st.button("← Back", type="secondary", key="credits_back"):
+            st.session_state.show_credits = False
+            st.rerun()
+    
+    # Header
+    st.markdown("""
+    <div style="text-align: center; padding: 60px 20px 40px 20px;">
+        <div style="font-size: 48px; margin-bottom: 16px;">👥</div>
+        <h1 style="font-size: 36px; font-weight: 800; color: #f8fafc; margin: 0;">Meet the Team</h1>
+        <p style="font-size: 16px; color: #71717a; margin-top: 12px;">The minds behind StockAI Market Simulation</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Team members
+    cols = st.columns(3)
+    members = [
+        ("Riyan Ozair", "Project Lead", "AI Systems · Frontend · Research", "🧠"),
+        ("Nabeel Rizwan", "Simulation Engineer", "Market Dynamics · Backend", "⚙️"),
+        ("Samiullah", "Product & UX", "Interface · Storytelling · Testing", "🎨")
+    ]
+    
+    for col, (name, role, skills, emoji) in zip(cols, members):
+        with col:
+            st.markdown(f"""
+            <div style="
+                background: rgba(22, 22, 32, 0.8);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 20px;
+                padding: 32px 24px;
+                text-align: center;
+                transition: all 0.3s ease;
+            ">
+                <div style="
+                    width: 80px;
+                    height: 80px;
+                    background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 36px;
+                    margin: 0 auto 20px auto;
+                    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.3);
+                ">{emoji}</div>
+                <div style="font-size: 22px; font-weight: 800; color: #f8fafc;">{name}</div>
+                <div style="
+                    font-size: 13px; 
+                    color: #8b5cf6; 
+                    font-weight: 600;
+                    margin-top: 8px;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                ">{role}</div>
+                <div style="
+                    font-size: 13px; 
+                    color: #71717a; 
+                    margin-top: 16px;
+                    line-height: 1.6;
+                ">{skills}</div>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
+    
+    # Academic guide
+    st.markdown("""
+    <div style="
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 20px;
+        padding: 32px;
+        text-align: center;
+        max-width: 500px;
+        margin: 0 auto;
+    ">
+        <div style="font-size: 14px; color: #8b5cf6; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Academic Supervisor</div>
+        <div style="font-size: 24px; font-weight: 800; color: #f8fafc; margin-top: 12px;">Dr. [Your Guide Name]</div>
+        <div style="font-size: 14px; color: #71717a; margin-top: 8px;">Research Direction · Technical Guidance</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
+    
+    # Project info
+    st.markdown("""
+    <div style="text-align: center; padding: 20px;">
+        <div style="font-size: 14px; color: #52525b;">
+            Final Year Project • 2025-2026<br>
+            Built with ❤️ using Python, Streamlit, and Plotly
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Continue to app button
+    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        if st.button("🚀 Launch StockAI", type="primary", width='stretch', key="credits_launch"):
+            st.session_state.show_credits = False
+            st.session_state.app_started = True
+            st.rerun()
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # AGENT INTELLIGENCE TAB
@@ -2097,23 +3250,50 @@ def render_agents():
     # Agent selector
     col1, col2, col3 = st.columns([2, 1, 1])
     
+    # Check if custom agent is active
+    custom_agent_name = st.session_state.custom_agent.get("display_name", "")
+    custom_agent_enabled = st.session_state.custom_agent.get("enabled", False)
+    
     with col1:
-        agent_options = [f"{a.name} ({a.character})" for a in state.agents[:30]]
+        agent_options = []
+        for a in state.agents[:30]:
+            # Add star indicator for custom agent
+            if custom_agent_enabled and a.name == custom_agent_name:
+                agent_options.append(f"⭐ {a.name} ({a.character}) - YOUR AGENT")
+            else:
+                agent_options.append(f"{a.name} ({a.character})")
         selected = st.selectbox("Select Agent", agent_options, label_visibility="collapsed")
     
     if selected:
         idx = agent_options.index(selected)
         agent = state.agents[idx]
+        is_custom_agent = custom_agent_enabled and agent.name == custom_agent_name
         
         # Agent overview
         st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
         
+        # Custom agent highlight banner
+        if is_custom_agent:
+            st.markdown("""
+            <div style="background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.15)); border: 1px solid rgba(139,92,246,0.3); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 24px;">⭐</span>
+                <div>
+                    <div style="font-weight: 700; color: var(--accent-purple);">Your Custom Agent</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">This is the personalized agent you created</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        
         col1, col2, col3, col4 = st.columns(4)
+        
+        # Card styling for custom agent
+        card_border = "border: 2px solid rgba(139,92,246,0.5);" if is_custom_agent else ""
+        card_glow = "box-shadow: 0 0 20px rgba(139,92,246,0.2);" if is_custom_agent else ""
         
         with col1:
             st.markdown(f"""
-            <div class="metric-card">
-                <span class="metric-icon">👤</span>
+            <div class="metric-card" style="{card_border} {card_glow}">
+                <span class="metric-icon">{'⭐' if is_custom_agent else '👤'}</span>
                 <div class="metric-value metric-blue" style="font-size: 18px;">{agent.name}</div>
                 <div class="metric-label">{agent.character}</div>
                 <div class="metric-change" style="background: {'var(--accent-red-dim)' if agent.is_bankrupt else 'var(--accent-green-dim)'}; color: {'var(--accent-red)' if agent.is_bankrupt else 'var(--accent-green)'};">
@@ -2125,7 +3305,7 @@ def render_agents():
         with col2:
             pnl_color = "metric-green" if agent.pnl_percent >= 0 else "metric-red"
             st.markdown(f"""
-            <div class="metric-card">
+            <div class="metric-card" style="{card_border} {card_glow}">
                 <span class="metric-icon">💰</span>
                 <div class="metric-value {pnl_color}">{format_percent(agent.pnl_percent)}</div>
                 <div class="metric-label">Total P&L</div>
@@ -2224,6 +3404,45 @@ def render_agents():
                 </div>
                 """, unsafe_allow_html=True)
 
+        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+
+        # Global reasoning feed
+        st.markdown("#### 🧠 Agent Reasoning Feed")
+        feed = []
+        for a in state.agents:
+            for action in a.action_history[-10:]:
+                feed.append({
+                    "day": action.get("day", 0),
+                    "session": action.get("session", 0),
+                    "agent": a.name,
+                    "action": action.get("action"),
+                    "stock": action.get("stock"),
+                    "reasoning": action.get("reasoning", "No reasoning recorded")
+                })
+
+        feed = sorted(feed, key=lambda x: (x["day"], x["session"]), reverse=True)[:12]
+
+        if feed:
+            for item in feed:
+                st.markdown(f"""
+                <div class="info-card" style="padding: 14px 16px;">
+                    <div style="display:flex; justify-content: space-between; align-items:center;">
+                        <div style="font-weight: 700; color: var(--text-primary);">{item['agent']}</div>
+                        <div style="font-size: 11px; color: var(--text-dim);">Day {item['day']} · S{item['session']}</div>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">{item['action']} {item['stock']}</div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 6px;">{item['reasoning']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="empty-state" style="padding: 36px;">
+                <div class="empty-state-icon">🧠</div>
+                <div class="empty-state-title">No Reasoning Yet</div>
+                <div class="empty-state-description">Run the simulation to generate agent reasoning</div>
+            </div>
+            """, unsafe_allow_html=True)
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # COMPARATIVE ANALYSIS TAB
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2303,7 +3522,7 @@ def render_analysis():
             xaxis=dict(showgrid=False)
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
     
     with col2:
         st.markdown("#### Strategy Distribution")
@@ -2341,17 +3560,22 @@ def render_analysis():
             )]
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
     
     st.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
     
     # Top performers
     st.markdown("#### 🏆 Top 10 Performers")
     
+    # Check for custom agent
+    custom_agent_name = st.session_state.custom_agent.get("display_name", "")
+    custom_agent_enabled = st.session_state.custom_agent.get("enabled", False)
+    
     sorted_agents = sorted(state.agents, key=lambda a: a.pnl_percent, reverse=True)[:10]
     
     for i, agent in enumerate(sorted_agents, 1):
         pnl_color = "#10b981" if agent.pnl_percent >= 0 else "#ef4444"
+        is_custom = custom_agent_enabled and agent.name == custom_agent_name
         
         if i == 1:
             medal = "🥇"
@@ -2366,11 +3590,19 @@ def render_analysis():
             medal = f"#{i}"
             bg = "transparent"
         
+        # Custom agent highlighting
+        if is_custom:
+            border_style = "border: 2px solid rgba(139,92,246,0.6); box-shadow: 0 0 15px rgba(139,92,246,0.2);"
+            badge = '<span style="background: linear-gradient(135deg, #6366f1, #a855f7); color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; margin-left: 8px; font-weight: 600;">YOUR AGENT</span>'
+        else:
+            border_style = ""
+            badge = ""
+        
         st.markdown(f"""
-        <div class="agent-row" style="background: {bg if i <= 3 else 'var(--bg-card)'};">
+        <div class="agent-row" style="background: {bg if i <= 3 else 'var(--bg-card)'}; {border_style}">
             <div class="agent-rank">{medal}</div>
             <div class="agent-info">
-                <div class="agent-name">{agent.name}</div>
+                <div class="agent-name">{'⭐ ' if is_custom else ''}{agent.name}{badge}</div>
                 <div class="agent-strategy">{agent.character}</div>
             </div>
             <div class="agent-pnl">
@@ -2381,6 +3613,180 @@ def render_analysis():
             </div>
         </div>
         """, unsafe_allow_html=True)
+    
+    # Show custom agent position if not in top 10
+    if custom_agent_enabled and custom_agent_name:
+        all_sorted = sorted(state.agents, key=lambda a: a.pnl_percent, reverse=True)
+        custom_idx = next((i for i, a in enumerate(all_sorted) if a.name == custom_agent_name), None)
+        if custom_idx is not None and custom_idx >= 10:
+            custom_agent = all_sorted[custom_idx]
+            pnl_color = "#10b981" if custom_agent.pnl_percent >= 0 else "#ef4444"
+            st.markdown(f"""
+            <div style="margin-top: 12px; padding: 8px 12px; background: rgba(139,92,246,0.1); border: 1px dashed rgba(139,92,246,0.4); border-radius: 8px; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 13px; color: var(--text-muted);">Your agent is ranked</span>
+                <span style="font-weight: 700; color: var(--accent-purple);">#{custom_idx + 1}</span>
+                <span style="color: var(--text-muted);">|</span>
+                <span style="font-weight: 600; color: var(--text-primary);">⭐ {custom_agent.name}</span>
+                <span style="margin-left: auto; font-weight: 600; color: {pnl_color};">{format_percent(custom_agent.pnl_percent)}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+
+    # Behavioral bias distribution
+    st.markdown("#### 🧬 Behavioral Bias Distribution")
+    bias_levels = ["Low", "Medium", "High"]
+    bias_data = {
+        "Herding": [0, 0, 0],
+        "Loss Aversion": [0, 0, 0],
+        "Overconfidence": [0, 0, 0],
+        "Anchoring": [0, 0, 0]
+    }
+
+    for a in state.agents:
+        bias_data["Herding"][bias_levels.index(a.herding_level)] += 1
+        bias_data["Loss Aversion"][bias_levels.index(a.loss_aversion_level)] += 1
+        bias_data["Overconfidence"][bias_levels.index(a.overconfidence_level)] += 1
+        bias_data["Anchoring"][bias_levels.index(a.anchoring_level)] += 1
+
+    bias_df = pd.DataFrame(bias_data, index=bias_levels)
+
+    fig_bias = go.Figure()
+    colors = {"Low": "#10b981", "Medium": "#f59e0b", "High": "#ef4444"}
+    for level in bias_levels:
+        fig_bias.add_trace(go.Bar(
+            name=level,
+            x=bias_df.columns,
+            y=bias_df.loc[level].values,
+            marker_color=colors[level]
+        ))
+
+    fig_bias.update_layout(
+        barmode='stack',
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='#a1a1aa', family='Inter'),
+        margin=dict(l=0, r=0, t=20, b=0),
+        height=320,
+        legend=dict(orientation="h", y=-0.2)
+    )
+    fig_bias.update_yaxes(showgrid=True, gridcolor='rgba(255,255,255,0.04)')
+    fig_bias.update_xaxes(showgrid=False)
+    st.plotly_chart(fig_bias, width='stretch')
+
+    st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+
+    # Event timeline
+    st.markdown("#### 🗓️ Event Timeline")
+    if state.events:
+        fcol1, fcol2, fcol3 = st.columns(3)
+        with fcol1:
+            type_filter = st.multiselect("Event Type", ["macro", "sentiment", "corporate"], default=["macro", "sentiment", "corporate"])
+        with fcol2:
+            severity_filter = st.multiselect("Severity", ["LOW", "MEDIUM", "HIGH"], default=["LOW", "MEDIUM", "HIGH"])
+        with fcol3:
+            show_manual = st.toggle("Show Manual Only", value=False)
+
+        filtered = []
+        for e in state.events:
+            if e.event_type not in type_filter or e.severity not in severity_filter:
+                continue
+            if show_manual and e not in state.manual_events:
+                continue
+            filtered.append(e)
+
+        if filtered:
+            timeline = pd.DataFrame([{
+                "Day": e.day,
+                "Type": e.event_type.title(),
+                "Severity": e.severity,
+                "Title": e.title,
+                "Impact": e.impact
+            } for e in filtered])
+
+            fig = px.scatter(
+                timeline,
+                x="Day",
+                y="Type",
+                color="Severity",
+                hover_data=["Title", "Impact"],
+                color_discrete_map={"LOW": "#10b981", "MEDIUM": "#f59e0b", "HIGH": "#ef4444"}
+            )
+            fig.update_layout(
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                font=dict(color='#a1a1aa', family='Inter'),
+                margin=dict(l=0, r=0, t=20, b=0),
+                height=320,
+                legend=dict(orientation="h", y=-0.2)
+            )
+            fig.update_xaxes(showgrid=True, gridcolor='rgba(255,255,255,0.04)')
+            fig.update_yaxes(showgrid=False)
+            st.plotly_chart(fig, width='stretch')
+            st.dataframe(timeline.sort_values("Day"), width='stretch')
+        else:
+            st.info("No events match the current filters.")
+    else:
+        st.info("No events yet.")
+
+    st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+
+    # Off-brand stock analytics
+    if state.extra_stocks:
+        st.markdown("#### 🧪 Off-Brand Stock Analytics")
+        price_data = engine.get_price_history_df()
+        if price_data and price_data.get("extra_stocks"):
+            analytics = []
+            for name, series in price_data["extra_stocks"].items():
+                clean = [v for v in series if v is not None]
+                if len(clean) < 2:
+                    continue
+                returns = pd.Series(clean).pct_change().dropna()
+                vol = returns.std() * 100
+                total = (clean[-1] / clean[0] - 1) * 100
+                analytics.append({
+                    "Stock": name,
+                    "Total Return %": total,
+                    "Volatility %": vol,
+                    "Last Price": clean[-1]
+                })
+
+            if analytics:
+                df_extra = pd.DataFrame(analytics).sort_values("Total Return %", ascending=False)
+                st.dataframe(df_extra, width='stretch')
+            else:
+                st.info("Not enough data to compute analytics yet.")
+
+            # Correlation heatmap (A, B, and off-brand stocks)
+            st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+            st.markdown("#### 🔗 Correlation Heatmap")
+            series_map = {
+                "Stock A": price_data.get("stock_a", []),
+                "Stock B": price_data.get("stock_b", [])
+            }
+            for name, series in price_data["extra_stocks"].items():
+                series_map[name] = series
+
+            df_prices = pd.DataFrame(series_map)
+            df_returns = df_prices.pct_change().dropna()
+            if df_returns.shape[1] >= 2 and len(df_returns) > 2:
+                corr = df_returns.corr()
+                fig_corr = px.imshow(
+                    corr,
+                    text_auto=True,
+                    color_continuous_scale=[[0, "#ef4444"], [0.5, "#1f2937"], [1, "#10b981"]],
+                    aspect="auto"
+                )
+                fig_corr.update_layout(
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    font=dict(color='#a1a1aa', family='Inter'),
+                    margin=dict(l=0, r=0, t=30, b=0),
+                    height=420
+                )
+                st.plotly_chart(fig_corr, width='stretch')
+            else:
+                st.info("Not enough data to compute correlations yet.")
     
     # Summary stats
     st.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
@@ -2418,22 +3824,28 @@ def main():
     if not st.session_state.app_started:
         if st.session_state.show_guidelines:
             render_guidelines_page()
+        elif st.session_state.show_credits:
+            render_credits_page()
         else:
             render_landing_page()
         return
+    
+    # Initialize chatbot
+    init_chatbot_state()
     
     # Main application
     render_header()
     
     st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
     
-    # Tab navigation
+    # Tab navigation (AI Advisor via floating orb, Credits via footer)
     tabs = st.tabs([
         "📊 Overview",
         "⚙️ Controls",
         "📈 Market",
         "🤖 Agents",
-        "📉 Analysis"
+        "📉 Analysis",
+        "🎭 My Agent"
     ])
     
     with tabs[0]:
@@ -2450,21 +3862,30 @@ def main():
     
     with tabs[4]:
         render_analysis()
+
+    with tabs[5]:
+        render_personalize()
     
-    # Footer
-    st.markdown("""
-    <div class="app-footer">
-        <div class="footer-brand">StockAI Research Laboratory</div>
-        <div class="footer-links">
-            <a href="#">Documentation</a>
-            <a href="#">GitHub</a>
-            <a href="#">Contact</a>
-        </div>
-        <div class="footer-copyright">
+    # Floating AI Chat Orb with 3D glass effect and particle animation
+    # TODO: Re-enable after isolating chatbot to prevent interference with other buttons
+    # render_floating_chatbot(engine.state)
+    
+    # Footer with Credits link only (Guidelines moved to header)
+    st.markdown("""<div style='height: 40px;'></div>""", unsafe_allow_html=True)
+    
+    footer_cols = st.columns([4, 1])
+    with footer_cols[0]:
+        st.markdown("""
+        <div style="color: #52525b; font-size: 12px;">
+            <strong style="color: #a1a1aa;">StockAI Research Laboratory</strong><br>
             © 2026 Final Year Project · Built with Streamlit & Plotly
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+    with footer_cols[1]:
+        if st.button("👥 Credits", key="footer_credits", width='stretch'):
+            st.session_state.show_credits = True
+            st.session_state.app_started = False
+            st.rerun()
 
 if __name__ == "__main__":
     main()

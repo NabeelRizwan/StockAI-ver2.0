@@ -58,12 +58,59 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-4. Run the application:
+4. Set up FREE LLM API Key (Groq recommended):
+   - Go to https://console.groq.com and create a free account
+   - Click "API Keys" and generate a new key
+   - Copy `.env.example` to `.env` and paste your key:
+     ```env
+     GROQ_API_KEY=your_groq_api_key_here
+     ```
+   - (Optional) For Google Gemini, get a key at https://aistudio.google.com
+
+5. Run the application:
 ```bash
 streamlit run ui/app.py --server.port 8510
 ```
 
-5. Open your browser at `http://localhost:8510`
+6. Open your browser at `http://localhost:8510`
+
+**Default LLM:** Llama 3.3 70B (free via Groq)
+
+**Security:** Never share your `.env` file or API keys publicly. `.env` is gitignored by default.
+
+## 🚢 Deployment
+
+### Streamlit Cloud (Recommended - Free)
+
+1. Push your code to GitHub
+2. Go to [share.streamlit.io](https://share.streamlit.io)
+3. Connect your repository
+4. Add secrets in the dashboard (Settings → Secrets):
+   ```toml
+   GROQ_API_KEY = "your_key"
+   GOOGLE_API_KEY = "your_key"
+   ```
+5. Deploy!
+
+### Docker
+
+```bash
+# Build the image
+docker build -t stockai .
+
+# Run the container
+docker run -p 8510:8510 --env-file .env stockai
+```
+
+### Manual Server Deployment
+
+```bash
+# Install on server
+pip install -r requirements.txt
+
+# Run with production settings
+streamlit run ui/app.py --server.port 8510 --server.address 0.0.0.0 --server.headless true
+```
 
 ## 📁 Project Structure
 
@@ -142,7 +189,7 @@ This project is licensed under the MIT License.
 
 Based on research from "When AI Meets Finance (StockAgent): Large Language Model-based Stock Trading in Simulated Real-world Environments"
 
-- **Original Repository**: [MingyuJ666/Stockagent](https://github.com/MingyuJ666/Stockagent)
+- **Reffernced Repository**: [MingyuJ666/Stockagent](https://github.com/MingyuJ666/Stockagent)
 - **Paper**: [arXiv:2407.18957](https://arxiv.org/pdf/2407.18957)
 
 ---

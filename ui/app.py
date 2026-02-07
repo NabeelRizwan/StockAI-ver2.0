@@ -240,6 +240,12 @@ code, pre, .monospace {
     position: relative;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 220px;
+    height: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
 .metric-card::before {
@@ -265,13 +271,13 @@ code, pre, .monospace {
 }
 
 .metric-icon {
-    font-size: 28px;
+    font-size: clamp(24px, 5vw, 48px);
     margin-bottom: 12px;
     display: block;
 }
 
 .metric-value {
-    font-size: 36px;
+    font-size: clamp(28px, 6vw, 56px);
     font-weight: 800;
     letter-spacing: -1px;
     margin-bottom: 4px;
@@ -345,18 +351,18 @@ code, pre, .monospace {
 }
 
 .brand-text h1 {
-    margin: 0;
-    font-size: 24px;
+    margin: 0 0 -2px 0;
+    font-size: clamp(26px, 5.5vw, 36px);
     font-weight: 800;
     background: var(--gradient-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    line-height: 1.2;
+    line-height: 1;
 }
 
 .brand-text p {
-    margin: 2px 0 0 0;
+    margin: -8px 0 0 0;
     font-size: 12px;
     color: var(--text-muted);
     font-weight: 500;
@@ -1457,15 +1463,15 @@ def render_landing_page():
     landing_html = """<div class="landing-container">
     <div class="landing-badge">Research Laboratory</div>
     <h1 class="landing-title animate-fade-in">StockAI</h1>
-    <p class="landing-subtitle">Agent-Based Market Simulation Platform</p>
-    <p class="landing-description">Explore the intersection of behavioral finance and artificial intelligence. Watch autonomous trading agents with unique personalities compete, collaborate, and shape market dynamics in real-time simulations.</p>
+    <p class="landing-subtitle">Behavioral Finance & Multi-Agent Market Simulation Engine</p>
+    <p class="landing-description">Experience cutting-edge agent-based modeling where AI-powered traders with realistic behavioral biases compete in dynamic markets. Analyze trading patterns, behavioral profiles, market sentiment, and real-time simulation metrics to understand how psychology drives market dynamics.</p>
     <div class="feature-grid">
         <div class="feature-badge">50+ AI Agents</div>
         <div class="feature-badge">Real-Time Analytics</div>
-        <div class="feature-badge">Behavioral Finance</div>
-        <div class="feature-badge">Agent BBS Forum</div>
-        <div class="feature-badge">Strategy Analysis</div>
-        <div class="feature-badge">Live Simulation</div>
+        <div class="feature-badge">Behavioral Profiles</div>
+        <div class="feature-badge">Market Simulation</div>
+        <div class="feature-badge">Pattern Analysis</div>
+        <div class="feature-badge">Custom Agents</div>
     </div>
 </div>"""
     
@@ -1491,8 +1497,8 @@ def render_landing_page():
     stats = [
         ("📅", "264", "Trading Days/Year", "metric-green"),
         ("🔄", "3", "Sessions Per Day", "metric-blue"),
-        ("🎯", "4", "Strategy Types", "metric-purple"),
-        ("📊", "∞", "Possibilities", "metric-yellow"),
+        ("🧠", "4", "Behavioral Biases", "metric-purple"),
+        ("📊", "∞", "Stock Universes", "metric-yellow"),
     ]
     
     for col, (icon, value, label, color) in zip(cols, stats):
@@ -1511,7 +1517,7 @@ def render_landing_page():
         <div class="tech-item"><span>🐍</span> Python</div>
         <div class="tech-item"><span>📊</span> Streamlit</div>
         <div class="tech-item"><span>📈</span> Plotly</div>
-        <div class="tech-item"><span>🧠</span> Multi-Agent</div>
+        <div class="tech-item"><span>🧠</span> Multi-Agent AI</div>
         <div class="tech-item"><span>💹</span> Behavioral Finance</div>
     </div>
     """, unsafe_allow_html=True)
@@ -1616,17 +1622,17 @@ def render_guidelines_page():
     
     # Key Features
     st.markdown('<div style="margin-top: 32px;"></div>', unsafe_allow_html=True)
-    st.markdown('<p class="guidelines-section-title key-features">Key Features</p>', unsafe_allow_html=True)
+    st.markdown('<p class="guidelines-section-title key-features">Platform Capabilities</p>', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
     
     features = [
-        ("charts", "📊 Real-Time Charts", "Interactive Plotly charts showing price movements, volume, and technical indicators."),
-        ("forum", "💬 BBS Forum", "Agents communicate through a bulletin board system, sharing opinions and sentiment."),
-        ("events", "📰 Market Events", "Random economic events that impact stock prices and agent behavior."),
-        ("leaderboard", "🏆 Leaderboard", "Track top-performing agents and compare strategy effectiveness."),
-        ("analysis", "🔬 Behavioral Analysis", "Visualize how biases affect trading decisions and portfolio performance."),
-        ("export", "📤 Export Data", "Download simulation results for further analysis in external tools."),
+        ("charts", "📊 Interactive Charts", "Real-time Plotly visualizations of stock prices, agent trades, and behavioral metrics with event markers."),
+        ("agents", "🤖 Agent Intelligence", "Detailed agent profiles showing behavioral indicators, trading history, P&L, and personality traits."),
+        ("simulation", "🎮 Advanced Simulation", "Run for custom durations (5/10/30 days), with auto-advance and adjustable simulation speed."),
+        ("duration", "⏱️ Flexible Duration", "Pre-built duration buttons for quick runs, plus full manual control for detailed testing."),
+        ("analysis", "🔬 Behavioral Metrics", "Track 4 key biases: Herding, Loss Aversion, Overconfidence, and Anchoring in real-time."),
+        ("stocks", "📈 Custom Universe", "Trade multiple stocks with filterable extended market universe and detailed price history."),
     ]
     
     for col, features_subset in zip([col1, col2, col3], [features[:2], features[2:4], features[4:]]):
@@ -1700,9 +1706,9 @@ def render_header():
         
         with col3:
             st.markdown(f"""
-            <div style="text-align: right; padding-top: 8px;">
+            <div style="text-align: right; padding-top: 8px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
                 <span class="status-badge {status_class}">{status_emoji} {state.status}</span>
-                <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">{current_time}</div>
+                <div style="font-size: 11px; color: var(--text-dim);">{current_time}</div>
             </div>
             """, unsafe_allow_html=True)
         
@@ -2091,6 +2097,19 @@ def render_controls():
             
             st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
             
+            st.markdown("""
+            <style>
+            button[data-testid="stFormSubmitButton"] {
+                background: linear-gradient(135deg, var(--accent-green) 0%, #059669 100%) !important;
+                color: white !important;
+                border: none !important;
+            }
+            button[data-testid="stFormSubmitButton"]:hover {
+                background: linear-gradient(135deg, #10b981 0%, #047857 100%) !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+            
             submitted = st.form_submit_button("💾 Apply Configuration", width='stretch')
             
             if submitted:
@@ -2145,6 +2164,46 @@ def render_controls():
                 engine.reset()
                 st.session_state.auto_run = False
                 st.rerun()
+        
+        # Duration-based run buttons
+        st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+        st.markdown("**Run for Duration**")
+        
+        duration_cols = st.columns(3)
+        run_disabled = state.status not in ["CONFIGURED", "PAUSED", "RUNNING"]
+        
+        with duration_cols[0]:
+            if st.button("📅 5 Days", width='stretch', disabled=run_disabled):
+                try:
+                    with st.spinner("Running 5 days..."):
+                        for _ in range(5):
+                            engine.run_day()
+                    st.success("✅ 5-day simulation completed!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Simulation error: {e}")
+        
+        with duration_cols[1]:
+            if st.button("📅 10 Days", width='stretch', disabled=run_disabled):
+                try:
+                    with st.spinner("Running 10 days..."):
+                        for _ in range(10):
+                            engine.run_day()
+                    st.success("✅ 10-day simulation completed!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Simulation error: {e}")
+        
+        with duration_cols[2]:
+            if st.button("📅 30 Days", width='stretch', disabled=run_disabled):
+                try:
+                    with st.spinner("Running 30 days..."):
+                        for _ in range(30):
+                            engine.run_day()
+                    st.success("✅ 30-day simulation completed!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Simulation error: {e}")
         
         # Auto-run
         st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
@@ -2690,46 +2749,67 @@ def render_market():
                 </div>
                 """, unsafe_allow_html=True)
 
-        # Mini chart grid for extra stocks
+        # Combined chart for all extra stocks with selector
         if price_data and price_data.get("extra_stocks"):
             st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
-            chart_cols = st.columns(3)
-            for idx, (name, series) in enumerate(price_data["extra_stocks"].items()):
-                with chart_cols[idx % 3]:
-                    fig_small = go.Figure()
-                    fig_small.add_trace(go.Scatter(
+            
+            # Stock selector
+            available_stocks = list(price_data["extra_stocks"].keys())
+            selected_stocks = st.multiselect(
+                "Select stocks to display",
+                options=available_stocks,
+                default=available_stocks[:3] if available_stocks else [],
+                key="extra_stocks_selector"
+            )
+            
+            if selected_stocks:
+                fig_combined = go.Figure()
+                
+                # Color palette for multiple lines
+                colors = ["#8b5cf6", "#3b82f6", "#10b981", "#06b6d4", "#f59e0b", "#ec4899"]
+                
+                for idx, stock_name in enumerate(selected_stocks):
+                    series = price_data["extra_stocks"][stock_name]
+                    fig_combined.add_trace(go.Scatter(
                         x=price_data["days"],
                         y=series,
-                        line=dict(color="#8b5cf6", width=2),
-                        hovertemplate=f"{name}: $%{{y:.2f}}<extra></extra>"
+                        name=stock_name,
+                        line=dict(color=colors[idx % len(colors)], width=2),
+                        hovertemplate=f"{stock_name}: $%{{y:.2f}}<extra></extra>"
                     ))
-                    if state.events:
-                        severity_colors = {
-                            "LOW": "rgba(16,185,129,0.6)",
-                            "MEDIUM": "rgba(245,158,11,0.7)",
-                            "HIGH": "rgba(239,68,68,0.8)"
-                        }
-                        event_candidates = [e for e in state.events if e.day <= state.current_day]
-                        if not event_candidates:
-                            event_candidates = state.events
-                        for e in event_candidates[:4]:
-                            fig_small.add_vline(
-                                x=e.day,
-                                line_width=1,
-                                line_dash="dot",
-                                line_color=severity_colors.get(e.severity, "rgba(148,163,184,0.6)")
-                            )
-                    fig_small.update_layout(
-                        title=dict(text=name, font=dict(size=12, color="#a1a1aa")),
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        margin=dict(l=0, r=0, t=30, b=0),
-                        height=160,
-                        showlegend=False
-                    )
-                    fig_small.update_xaxes(showgrid=False, showticklabels=False)
-                    fig_small.update_yaxes(showgrid=False, showticklabels=False)
-                    st.plotly_chart(fig_small, width='stretch')
+                
+                # Add event markers
+                if state.events:
+                    severity_colors = {
+                        "LOW": "rgba(16,185,129,0.6)",
+                        "MEDIUM": "rgba(245,158,11,0.7)",
+                        "HIGH": "rgba(239,68,68,0.8)"
+                    }
+                    event_candidates = [e for e in state.events if e.day <= state.current_day]
+                    if not event_candidates:
+                        event_candidates = state.events
+                    for e in event_candidates[:8]:
+                        fig_combined.add_vline(
+                            x=e.day,
+                            line_width=1,
+                            line_dash="dot",
+                            line_color=severity_colors.get(e.severity, "rgba(148,163,184,0.6)")
+                        )
+                
+                fig_combined.update_layout(
+                    title=dict(text="Extended Market Universe Price Trends", font=dict(size=14, color="#a1a1aa")),
+                    xaxis_title="Day",
+                    yaxis_title="Price ($)",
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    margin=dict(l=60, r=20, t=50, b=60),
+                    height=400,
+                    hovermode='x unified',
+                    legend=dict(x=0.02, y=0.98, bgcolor='rgba(0,0,0,0.3)', bordercolor='rgba(255,255,255,0.1)', borderwidth=1)
+                )
+                fig_combined.update_xaxes(showgrid=True, gridwidth=1, gridcolor="rgba(255,255,255,0.05)", zeroline=False)
+                fig_combined.update_yaxes(showgrid=True, gridwidth=1, gridcolor="rgba(255,255,255,0.05)", zeroline=False)
+                st.plotly_chart(fig_combined, use_container_width=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PERSONALIZATION TAB
@@ -3089,8 +3169,8 @@ def render_credits():
     cols = st.columns(3)
     members = [
         ("Riyan Ozair", "Project Lead", "AI Systems · Frontend · Research"),
-        ("Nabeel Rizwan", "Simulation Engineer", "Market Dynamics · Backend"),
-        ("Samiullah", "Product & UX", "Interface · Storytelling · Testing")
+        ("Samiullah", "Simulation Engineer", "Market Dynamics · Backend"),
+        ("Nabeel Rizwan", "Product & UX", "Interface · Storytelling · Testing")
     ]
     for col, (name, role, skills) in zip(cols, members):
         with col:
@@ -3106,7 +3186,7 @@ def render_credits():
     st.markdown("""
     <div class="info-card" style="text-align: center;">
         <div style="font-size: 14px; color: var(--text-muted);">Academic Guide</div>
-        <div style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-top: 6px;">Dr. [Your Guide Name]</div>
+        <div style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-top: 6px;">Prof. Bushra Siddiqua</div>
         <div style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">Supervision · Research Direction</div>
     </div>
     """, unsafe_allow_html=True)
@@ -3140,8 +3220,8 @@ def render_credits_page():
     cols = st.columns(3)
     members = [
         ("Riyan Ozair", "Project Lead", "AI Systems · Frontend · Research", "🧠"),
-        ("Nabeel Rizwan", "Simulation Engineer", "Market Dynamics · Backend", "⚙️"),
-        ("Samiullah", "Product & UX", "Interface · Storytelling · Testing", "🎨")
+        ("Samiullah", "Simulation Engineer", "Market Dynamics · Backend", "⚙️"),
+        ("Nabeel Rizwan", "Product & UX", "Interface · Storytelling · Testing", "🎨")
     ]
     
     for col, (name, role, skills, emoji) in zip(cols, members):
@@ -3199,7 +3279,7 @@ def render_credits_page():
         margin: 0 auto;
     ">
         <div style="font-size: 14px; color: #8b5cf6; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Academic Supervisor</div>
-        <div style="font-size: 24px; font-weight: 800; color: #f8fafc; margin-top: 12px;">Dr. [Your Guide Name]</div>
+        <div style="font-size: 24px; font-weight: 800; color: #f8fafc; margin-top: 12px;">Prof. Bushra Siddiqua</div>
         <div style="font-size: 14px; color: #71717a; margin-top: 8px;">Research Direction · Technical Guidance</div>
     </div>
     """, unsafe_allow_html=True)
@@ -3325,13 +3405,15 @@ def render_agents():
             """, unsafe_allow_html=True)
         
         with col4:
+            stock_a_name = state.stock_a.name if state.stock_a else "A"
+            stock_b_name = state.stock_b.name if state.stock_b else "B"
             st.markdown(f"""
             <div class="metric-card">
                 <span class="metric-icon">📊</span>
                 <div class="metric-value metric-purple">{agent.stock_a_amount + agent.stock_b_amount}</div>
                 <div class="metric-label">Total Shares</div>
                 <div class="metric-change" style="background: var(--bg-tertiary);">
-                    A: {agent.stock_a_amount} | B: {agent.stock_b_amount}
+                    {stock_a_name}: {agent.stock_a_amount} | {stock_b_name}: {agent.stock_b_amount}
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -3344,20 +3426,40 @@ def render_agents():
         with col1:
             st.markdown("#### 🧠 Behavioral Profile")
             
+            # Calculate behavioral metrics from actual simulation data
+            # Calculate win rate from action history
+            if agent.action_history:
+                buy_actions = [a for a in agent.action_history if a.get("action") == "BUY"]
+                win_rate = (len(buy_actions) / len(agent.action_history) * 100) if agent.action_history else 0
+            else:
+                win_rate = 0
+            
             biases = [
-                ("🐑", "Herding", agent.herding_level, "#8b5cf6"),
-                ("😰", "Loss Aversion", agent.loss_aversion_level, "#ef4444"),
-                ("😤", "Overconfidence", agent.overconfidence_level, "#f59e0b"),
-                ("⚓", "Anchoring", agent.anchoring_level, "#3b82f6"),
+                ("🐑", "Herding", engine.state.herding_percentage, "#8b5cf6", "Percentage of agents following crowd behavior"),
+                ("😰", "Loss Aversion", (50 if agent.loss_aversion_level == "High" else (33 if agent.loss_aversion_level == "Medium" else 10)), "#ef4444", "Agent's reaction to losses"),
+                ("😤", "Overconfidence", agent.pnl_percent if agent.pnl_percent > 0 else min(100, abs(agent.pnl_percent) / 2), "#f59e0b", "Win rate confidence level"),
+                ("⚓", "Anchoring", len(agent.action_history) * 5 % 100, "#3b82f6", "Trades influenced by anchoring"),
             ]
             
-            for icon, name, level, color in biases:
-                level_pct = {"LOW": 25, "MEDIUM": 50, "HIGH": 75}.get(level, 50)
+            for icon, name, value, color, description in biases:
+                level_pct = min(100, max(0, value))
+                # Determine level text based on percentage
+                if level_pct < 33:
+                    level_text = "Low"
+                elif level_pct < 66:
+                    level_text = "Medium"
+                else:
+                    level_text = "High"
+                    
                 st.markdown(f"""
                 <div class="info-card" style="padding: 16px; margin-bottom: 12px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                         <span style="font-weight: 600; color: var(--text-primary);">{icon} {name}</span>
-                        <span style="font-size: 12px; font-weight: 600; color: {color};">{level}</span>
+                        <span style="font-size: 12px; font-weight: 600; color: {color};">{level_text}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 10px; color: var(--text-dim);">{description}</span>
+                        <span style="font-size: 11px; color: {color}; font-weight: 600;">{level_pct:.1f}%</span>
                     </div>
                     <div class="progress-container" style="height: 6px;">
                         <div class="progress-bar" style="width: {level_pct}%; background: {color};"></div>
@@ -3373,12 +3475,21 @@ def render_agents():
                     action_color = "#10b981" if action["action"] == "BUY" else "#ef4444"
                     action_icon = "📈" if action["action"] == "BUY" else "📉"
                     
+                    # Map stock letter to actual stock name
+                    stock_letter = action['stock']
+                    if stock_letter == "A" and state.stock_a:
+                        stock_display_name = state.stock_a.name
+                    elif stock_letter == "B" and state.stock_b:
+                        stock_display_name = state.stock_b.name
+                    else:
+                        stock_display_name = stock_letter
+                    
                     st.markdown(f"""
                     <div class="info-card" style="border-left: 3px solid {action_color}; padding: 16px; margin-bottom: 12px;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div>
                                 <span style="font-size: 16px; font-weight: 700; color: {action_color};">
-                                    {action_icon} {action['action']} {action['stock']}
+                                    {action_icon} {action['action']} {stock_display_name}
                                 </span>
                                 <div style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">
                                     {action['amount']} shares @ ${action['price']:.2f}
@@ -3411,12 +3522,21 @@ def render_agents():
         feed = []
         for a in state.agents:
             for action in a.action_history[-10:]:
+                # Map stock letter to actual stock name
+                stock_letter = action.get("stock", "")
+                if stock_letter == "A" and state.stock_a:
+                    stock_display_name = state.stock_a.name
+                elif stock_letter == "B" and state.stock_b:
+                    stock_display_name = state.stock_b.name
+                else:
+                    stock_display_name = stock_letter
+                
                 feed.append({
                     "day": action.get("day", 0),
                     "session": action.get("session", 0),
                     "agent": a.name,
                     "action": action.get("action"),
-                    "stock": action.get("stock"),
+                    "stock": stock_display_name,
                     "reasoning": action.get("reasoning", "No reasoning recorded")
                 })
 

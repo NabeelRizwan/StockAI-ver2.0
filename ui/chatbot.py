@@ -410,7 +410,7 @@ def handle_chat_input(question: str, advisor: StockAIAdvisor, state: Any):
 
 
 def render_floating_chatbot(engine_state: Any):
-    """Render a floating 3D orb that opens a Streamlit dialog for chat."""
+    """Render a floating 3D glass orb with particle animation that opens a chat dialog."""
     import streamlit.components.v1 as components
     
     init_chatbot_state()
@@ -422,186 +422,296 @@ def render_floating_chatbot(engine_state: Any):
     
     # Get connection status
     status = advisor.get_connection_status()
-    status_color = "#10b981" if status["connected"] else "#ef4444"
+    is_connected = status["connected"]
     
-    # Inject the floating orb into parent document
-    components.html(f"""
+    # Inject the 3D glass orb with particle animation into parent document
+    components.html("""
     <script>
-    (function() {{
+    (function() {
         const parentDoc = window.parent.document;
         
         // Remove existing orb if present
-        const existingOrb = parentDoc.getElementById('stockai-floating-orb');
+        const existingOrb = parentDoc.getElementById('stockai-glass-orb');
         const existingStyles = parentDoc.getElementById('stockai-orb-styles');
         if (existingOrb) existingOrb.remove();
         if (existingStyles) existingStyles.remove();
         
-        // Inject styles
+        // Inject comprehensive styles
         const styleEl = parentDoc.createElement('style');
         styleEl.id = 'stockai-orb-styles';
         styleEl.textContent = `
-            @keyframes stockai-float {{
-                0%, 100% {{ transform: translateY(0) scale(1); }}
-                50% {{ transform: translateY(-10px) scale(1.02); }}
-            }}
-            @keyframes stockai-pulse {{
-                0%, 100% {{ box-shadow: 0 8px 32px rgba(139, 92, 246, 0.5), 0 0 60px rgba(59, 130, 246, 0.2), inset 0 -15px 30px rgba(0,0,0,0.3), inset 0 5px 20px rgba(255,255,255,0.1); }}
-                50% {{ box-shadow: 0 12px 48px rgba(139, 92, 246, 0.7), 0 0 80px rgba(59, 130, 246, 0.4), inset 0 -15px 30px rgba(0,0,0,0.3), inset 0 5px 20px rgba(255,255,255,0.1); }}
-            }}
-            #stockai-floating-orb {{
+            @keyframes float-gentle {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-12px); }
+            }
+            @keyframes rotate-slow {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            @keyframes particle-1 {
+                0% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+                100% { transform: translate(30px, -30px) scale(0.3); opacity: 0; }
+            }
+            @keyframes particle-2 {
+                0% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+                100% { transform: translate(-35px, -20px) scale(0.3); opacity: 0; }
+            }
+            @keyframes particle-3 {
+                0% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+                100% { transform: translate(25px, 28px) scale(0.3); opacity: 0; }
+            }
+            @keyframes particle-4 {
+                0% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+                100% { transform: translate(-28px, 32px) scale(0.3); opacity: 0; }
+            }
+            @keyframes glow-pulse {
+                0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.2), inset -2px -2px 8px rgba(0, 0, 0, 0.3), inset 2px 2px 8px rgba(255, 255, 255, 0.2); }
+                50% { box-shadow: 0 0 35px rgba(139, 92, 246, 0.6), 0 0 60px rgba(59, 130, 246, 0.35), inset -2px -2px 8px rgba(0, 0, 0, 0.3), inset 2px 2px 8px rgba(255, 255, 255, 0.25); }
+            }
+            
+            #stockai-glass-orb {
                 position: fixed !important;
                 bottom: 24px !important;
                 right: 24px !important;
-                width: 68px !important;
-                height: 68px !important;
+                width: 72px !important;
+                height: 72px !important;
                 border-radius: 50% !important;
-                background: radial-gradient(circle at 30% 30%, #a78bfa 0%, #8b5cf6 20%, #6366f1 40%, #3b82f6 60%, #0ea5e9 80%, #06b6d4 100%) !important;
                 cursor: pointer !important;
                 z-index: 2147483647 !important;
+                background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 15%, rgba(139, 92, 246, 0.2) 40%, rgba(59, 130, 246, 0.1) 60%, transparent 70%), linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(59, 130, 246, 0.25) 50%, rgba(16, 185, 129, 0.15) 100%) !important;
+                border: 2px solid rgba(255, 255, 255, 0.3) !important;
+                backdrop-filter: blur(10px) !important;
+                -webkit-backdrop-filter: blur(10px) !important;
+                animation: float-gentle 4s ease-in-out infinite, glow-pulse 3s ease-in-out infinite !important;
+                overflow: hidden !important;
+                box-shadow: 0 0 20px rgba(139, 92, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.2), inset -2px -2px 8px rgba(0, 0, 0, 0.3), inset 2px 2px 8px rgba(255, 255, 255, 0.2) !important;
+            }
+            
+            #stockai-glass-orb::before {
+                content: '' !important;
+                position: absolute !important;
+                top: 12% !important;
+                left: 18% !important;
+                width: 24px !important;
+                height: 24px !important;
+                background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), transparent) !important;
+                border-radius: 50% !important;
+                pointer-events: none !important;
+                z-index: 1 !important;
+            }
+            
+            #stockai-glass-orb:hover {
+                transform: scale(1.15) translateY(-6px) !important;
+                animation: none !important;
+                box-shadow: 0 8px 32px rgba(139, 92, 246, 0.7), 0 0 60px rgba(59, 130, 246, 0.5), inset -2px -2px 8px rgba(0, 0, 0, 0.3), inset 2px 2px 12px rgba(255, 255, 255, 0.3) !important;
+            }
+            
+            .orb-content {
+                position: absolute !important;
+                width: 100% !important;
+                height: 100% !important;
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                font-size: 28px !important;
-                border: 2px solid rgba(255, 255, 255, 0.4) !important;
-                animation: stockai-float 3s ease-in-out infinite, stockai-pulse 2s ease-in-out infinite !important;
-                transition: transform 0.3s ease, border-color 0.3s ease !important;
-            }}
-            #stockai-floating-orb::before {{
-                content: '' !important;
+                z-index: 10 !important;
+            }
+            
+            .orb-icon {
+                font-size: 32px !important;
+                filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) !important;
+            }
+            
+            .particle {
                 position: absolute !important;
-                top: 8px !important;
-                left: 14px !important;
-                width: 18px !important;
-                height: 10px !important;
-                background: linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 100%) !important;
                 border-radius: 50% !important;
-                transform: rotate(-25deg) !important;
                 pointer-events: none !important;
-            }}
-            #stockai-floating-orb:hover {{
-                transform: scale(1.12) translateY(-5px) !important;
-                animation: none !important;
-                border-color: rgba(255, 255, 255, 0.8) !important;
-                box-shadow: 0 16px 64px rgba(139, 92, 246, 0.8), 0 0 100px rgba(59, 130, 246, 0.5), inset 0 -15px 30px rgba(0,0,0,0.3), inset 0 5px 20px rgba(255,255,255,0.15) !important;
-            }}
-            #stockai-floating-orb .orb-dot {{
-                position: absolute !important;
-                top: 6px !important;
-                right: 6px !important;
-                width: 14px !important;
-                height: 14px !important;
-                border-radius: 50% !important;
-                border: 2px solid #0c0c12 !important;
-            }}
+            }
+            
+            .particle-1 {
+                width: 6px !important;
+                height: 6px !important;
+                background: #a78bfa !important;
+                top: 50% !important;
+                left: 50% !important;
+                animation: particle-1 2s ease-out infinite !important;
+            }
+            
+            .particle-2 {
+                width: 5px !important;
+                height: 5px !important;
+                background: #3b82f6 !important;
+                top: 50% !important;
+                left: 50% !important;
+                animation: particle-2 2.5s ease-out 0.3s infinite !important;
+            }
+            
+            .particle-3 {
+                width: 6px !important;
+                height: 6px !important;
+                background: #10b981 !important;
+                top: 50% !important;
+                left: 50% !important;
+                animation: particle-3 2.2s ease-out 0.6s infinite !important;
+            }
+            
+            .particle-4 {
+                width: 5px !important;
+                height: 5px !important;
+                background: #06b6d4 !important;
+                top: 50% !important;
+                left: 50% !important;
+                animation: particle-4 2.7s ease-out 0.9s infinite !important;
+            }
         `;
         parentDoc.head.appendChild(styleEl);
         
-        // Create the floating orb
+        // Create the floating glass orb
         const orb = parentDoc.createElement('div');
-        orb.id = 'stockai-floating-orb';
-        orb.innerHTML = `<span style="text-shadow: 0 2px 8px rgba(0,0,0,0.4);">🤖</span><div class="orb-dot" style="background: {status_color};"></div>`;
-        orb.onclick = function() {{
-            // Find and click the hidden Streamlit button to open dialog
-            const btns = parentDoc.querySelectorAll('button');
-            for (let btn of btns) {{
-                if (btn.innerText && btn.innerText.includes('OPEN_CHAT_DIALOG')) {{
+        orb.id = 'stockai-glass-orb';
+        orb.innerHTML = `
+            <div class="particle particle-1"></div>
+            <div class="particle particle-2"></div>
+            <div class="particle particle-3"></div>
+            <div class="particle particle-4"></div>
+            <div class="orb-content">
+                <span class="orb-icon">�</span>
+            </div>
+        `;
+        
+        // Click handler to trigger chat
+        orb.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            // Find and click the hidden Streamlit button
+            const buttons = parentDoc.querySelectorAll('button');
+            for (let btn of buttons) {
+                if (btn.getAttribute('data-testid') === 'stBaseButton-secondary' && 
+                    btn.textContent.includes('STOCKAI_ORB_TRIGGER')) {
                     btn.click();
-                    break;
-                }}
-            }}
-        }};
+                    return;
+                }
+            }
+        };
+        
         parentDoc.body.appendChild(orb);
-    }})();
+    })();
     </script>
     """, height=0)
     
-    # Hidden trigger button (styled to be invisible)
+    # Hidden button to trigger the dialog via Streamlit state
     st.markdown("""
     <style>
-    button[kind="secondary"]:has(p:contains("OPEN_CHAT_DIALOG")) {
-        position: fixed !important;
-        left: -9999px !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
-    }
+    .stockai-hidden-trigger { display: none !important; }
     </style>
     """, unsafe_allow_html=True)
     
-    # The trigger button - clicking orb will click this
-    if st.button("OPEN_CHAT_DIALOG", key="orb_trigger_hidden"):
-        st.session_state.chat_orb_open = True
-        st.rerun()
+    col1, col2 = st.columns([20, 1])
+    with col2:
+        if st.button("STOCKAI_ORB_TRIGGER", key="stockai_orb_btn", help="Open AI Assistant"):
+            st.session_state.chat_orb_open = True
+            st.rerun()
     
     # Show the dialog when open
     if st.session_state.chat_orb_open:
         _show_chat_dialog(advisor, engine_state)
 
 
-@st.dialog("🤖 AI Market Advisor", width="large")
+@st.dialog("💬 AI Market Advisor", width="large")
 def _show_chat_dialog(advisor, engine_state):
-    """Show the chat dialog with full Streamlit interactivity."""
+    """Show the chat dialog with messaging-style bubbles."""
     status = advisor.get_connection_status()
     status_color = "#10b981" if status["connected"] else "#ef4444"
     status_text = status["provider"] if status["connected"] else "Not Connected"
     
-    # Header
+    # Enhanced header with status
     st.markdown(f"""
-    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px;">
-        <div style="
-            width: 50px; height: 50px;
-            background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 26px;
-            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
-        ">🤖</div>
-        <div>
-            <div style="font-size: 18px; font-weight: 700; color: #f8fafc;">AI Market Advisor</div>
-            <div style="font-size: 12px; color: {status_color}; display: flex; align-items: center; gap: 6px;">
-                <span style="width: 8px; height: 8px; background: {status_color}; border-radius: 50%; display: inline-block;"></span>
-                {status_text}
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 0 0 12px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 24px;">🤖</span>
+            <div>
+                <p style="margin: 0; font-size: 16px; font-weight: 600; color: #f8fafc;">AI Market Advisor</p>
+                <p style="margin: 2px 0 0 0; font-size: 12px; color: #71717a;">Powered by {status_text}</p>
             </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(16, 185, 129, 0.15); border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.3);">
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: {status_color};"></div>
+            <span style="font-size: 12px; color: {status_color}; font-weight: 500;">
+                {"Connected" if status["connected"] else "Offline"}
+            </span>
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    # Messages container (compact)
-    with st.container(height=180):
-        for msg in st.session_state.chatbot_messages:
-            if msg["role"] == "assistant":
-                with st.chat_message("assistant", avatar="🤖"):
-                    st.markdown(msg["content"])
-            else:
-                with st.chat_message("user", avatar="👤"):
-                    st.markdown(msg["content"])
+    # Messages container with custom styling
+    st.markdown("""
+    <style>
+    .chat-messages {
+        height: 280px;
+        overflow-y: auto;
+        padding: 12px 0;
+        margin-bottom: 16px;
+    }
+    .chat-bubble-user {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(59, 130, 246, 0.15) 100%);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 14px;
+        padding: 12px 14px;
+        margin: 8px 0 8px 32px;
+        word-wrap: break-word;
+        color: #f8fafc;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    .chat-bubble-ai {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%);
+        border: 1px solid rgba(59, 130, 246, 0.2);
+        border-radius: 14px;
+        padding: 12px 14px;
+        margin: 8px 32px 8px 0;
+        word-wrap: break-word;
+        color: #f8fafc;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    </style>
+    <div class="chat-messages">
+    """, unsafe_allow_html=True)
+    
+    # Render messages as bubbles
+    for msg in st.session_state.chatbot_messages:
+        if msg["role"] == "assistant":
+            st.markdown(f'<div class="chat-bubble-ai">🤖 {msg["content"]}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="chat-bubble-user">👤 {msg["content"]}</div>', unsafe_allow_html=True)
+    
+    st.markdown("</div>", unsafe_allow_html=True)
     
     # Quick questions
     st.markdown("**💡 Quick Questions**")
-    qcols = st.columns(4)
+    qcols = st.columns(2)
     quick_qs = [
-        ("📈 Strategy", "Which strategy is performing best?"),
-        ("📊 Sentiment", "What's the current market sentiment?"),
-        ("🏆 Top Agents", "Who are the top performing agents?"),
-        ("⚡ Volatility", "What's causing the volatility?"),
+        ("📈 Best Strategy", "Which strategy is performing best right now?"),
+        ("📊 Market Sentiment", "What's the current market sentiment based on our data?"),
+        ("🏆 Top Agents", "Who are the top 3 performing agents?"),
+        ("⚡ Volatility", "What factors are causing the current volatility?"),
     ]
     for i, (label, full_q) in enumerate(quick_qs):
-        with qcols[i]:
+        with qcols[i % 2]:
             if st.button(label, key=f"dlg_q_{i}", use_container_width=True):
                 handle_chat_input(full_q, advisor, engine_state)
                 st.rerun()
     
-    # Chat input
+    # Chat input area
     st.markdown("---")
     user_input = st.text_input(
-        "Ask anything...",
+        "Message",
         key="dialog_chat_input",
-        placeholder="Type your question about the simulation...",
+        placeholder="Ask anything about the simulation...",
         label_visibility="collapsed"
     )
     
-    cols = st.columns([4, 1, 1])
-    with cols[0]:
-        pass
+    # Action buttons
+    cols = st.columns([3, 1, 1])
     with cols[1]:
         if st.button("🚀 Send", key="dialog_send", use_container_width=True, type="primary"):
             if user_input:

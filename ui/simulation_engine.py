@@ -9,6 +9,7 @@ import sys
 import os
 import random
 import json
+import copy
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
 from datetime import datetime
@@ -114,9 +115,17 @@ class SimulationState:
     agents: List[AgentState] = field(default_factory=list)
     stock_a: Optional[StockState] = None
     stock_b: Optional[StockState] = None
+    extra_stocks: List[StockState] = field(default_factory=list)
     events: List[MarketEvent] = field(default_factory=list)
+    manual_events: List[MarketEvent] = field(default_factory=list)
     trades: List[TradeRecord] = field(default_factory=list)
     forum_messages: List[ForumMessage] = field(default_factory=list)
+
+    # Snapshots for rewind
+    snapshots: List[Dict[str, Any]] = field(default_factory=list)
+
+    # Custom agent configuration (optional)
+    custom_agent: Optional[Dict[str, Any]] = None
     
     # Metrics
     total_capital: float = 0
@@ -131,19 +140,246 @@ class SimulationState:
 # AGENT NAME GENERATOR
 # ===============================
 
-AGENT_PREFIXES = [
-    "Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", "Theta",
-    "Atlas", "Beacon", "Cipher", "Drift", "Echo", "Flux", "Grid", "Helix",
-    "Ion", "Jade", "Kappa", "Luna", "Maven", "Nexus", "Orion", "Pulse",
-    "Quasar", "Raven", "Sigma", "Titan", "Unity", "Vector", "Wave", "Xenon",
-    "Yield", "Zenith", "Apex", "Blaze", "Core", "Dash", "Edge", "Frost"
+AGENT_FIRST_NAMES = [
+    "Rajesh", "Amina", "Sofia", "Lucas", "Zara", "Mateo", "Chen", "Elena",
+    "Arjun", "Nora", "Kai", "Maya", "Omar", "Lucia", "Noah", "Rina",
+    "Ibrahim", "Lea", "Hugo", "Priya", "Ezra", "Lina", "Yusuf", "Ava",
+    "Diego", "Amir", "Sara", "Min", "Tariq", "Anya", "Hana", "Ethan",
+    "Mei", "Leo", "Farah", "Jin", "Mariam", "Rafael", "Nia", "Zain"
+]
+
+AGENT_MODIFIERS = [
+    "The Fox", "Ironhands", "Whisper", "Storm", "Lion", "Oracle", "Falcon",
+    "Shadow", "Viper", "Anchor", "Rocket", "Sage", "Blaze", "Onyx", "Nova",
+    "Cipher", "Maverick", "Pulse", "Quartz", "Echo"
 ]
 
 def generate_agent_name(agent_id: int) -> str:
-    """Generate a unique agent name."""
-    prefix = AGENT_PREFIXES[agent_id % len(AGENT_PREFIXES)]
-    suffix = (agent_id // len(AGENT_PREFIXES)) + 1
-    return f"{prefix}-{suffix:02d}"
+    """Generate a unique, human-like agent name with a modifier."""
+    first = AGENT_FIRST_NAMES[agent_id % len(AGENT_FIRST_NAMES)]
+    modifier = AGENT_MODIFIERS[(agent_id // len(AGENT_FIRST_NAMES)) % len(AGENT_MODIFIERS)]
+    cycle = agent_id // (len(AGENT_FIRST_NAMES) * len(AGENT_MODIFIERS))
+    suffix = f" #{cycle + 1}" if cycle > 0 else ""
+    return f"{first} \"{modifier}\"{suffix}"
+
+
+# ===============================
+# OFF-BRAND STOCK UNIVERSE
+# ===============================
+# A comprehensive market simulation with parody stocks across multiple sectors
+
+# Primary tradeable stocks (replacing generic A and B)
+PRIMARY_STOCKS = {
+    "Chevaco": {  # Chevron + Exxon parody - established chemical/energy
+        "sector": "Energy",
+        "initial_price": 30.0,
+        "volatility": 0.8,
+        "description": "Established chemical and energy conglomerate. 10 years in the market.",
+        "emoji": "⛽",
+        "color": "#f59e0b"
+    },
+    "ZapTech": {  # Emerging tech startup
+        "sector": "Tech",
+        "initial_price": 40.0,
+        "volatility": 1.3,
+        "description": "Fast-growing tech startup. 3 years old, high volatility.",
+        "emoji": "⚡",
+        "color": "#3b82f6"
+    }
+}
+
+# Extended universe of off-brand stocks across sectors
+STOCK_UNIVERSE = {
+    # Tech Giants
+    "Pear Inc": {
+        "sector": "Tech",
+        "initial_price": 175.0,
+        "volatility": 1.1,
+        "description": "Premium consumer electronics and services company.",
+        "emoji": "🍐",
+        "color": "#a1a1aa"
+    },
+    "Macrohard": {
+        "sector": "Tech", 
+        "initial_price": 145.0,
+        "volatility": 0.9,
+        "description": "Enterprise software and cloud computing giant.",
+        "emoji": "🪟",
+        "color": "#0ea5e9"
+    },
+    "Froogle": {
+        "sector": "Tech",
+        "initial_price": 128.0,
+        "volatility": 1.0,
+        "description": "Search engine, advertising, and AI leader.",
+        "emoji": "🔍",
+        "color": "#22c55e"
+    },
+    "Feta": {
+        "sector": "Tech",
+        "initial_price": 62.0,
+        "volatility": 1.4,
+        "description": "Social media and virtual reality metaverse company.",
+        "emoji": "👓",
+        "color": "#3b82f6"
+    },
+    "Tweeter": {
+        "sector": "Tech",
+        "initial_price": 28.0,
+        "volatility": 1.8,
+        "description": "Microblogging platform. Volatile since acquisition.",
+        "emoji": "🐦",
+        "color": "#38bdf8"
+    },
+    
+    # AI & Chips
+    "ENVIDIA": {
+        "sector": "Semiconductors",
+        "initial_price": 480.0,
+        "volatility": 1.6,
+        "description": "AI chip manufacturer. The backbone of modern AI.",
+        "emoji": "🎮",
+        "color": "#84cc16"
+    },
+    "OpenEye": {
+        "sector": "AI",
+        "initial_price": 200.0,
+        "volatility": 1.5,
+        "description": "Leading artificial intelligence research company.",
+        "emoji": "🤖",
+        "color": "#8b5cf6"
+    },
+    
+    # Auto & EV
+    "Papa Motors": {
+        "sector": "Automotive",
+        "initial_price": 38.0,
+        "volatility": 1.5,
+        "description": "Electric vehicles and clean energy. CEO is... eccentric.",
+        "emoji": "🚗",
+        "color": "#ef4444"
+    },
+    "Riviana": {
+        "sector": "Automotive",
+        "initial_price": 15.0,
+        "volatility": 1.7,
+        "description": "Electric adventure vehicle startup.",
+        "emoji": "🏔️",
+        "color": "#f97316"
+    },
+    
+    # E-commerce & Retail
+    "Nile Inc": {
+        "sector": "Retail",
+        "initial_price": 54.0,
+        "volatility": 1.05,
+        "description": "E-commerce everything store. Cloud services subsidiary.",
+        "emoji": "📦",
+        "color": "#f59e0b"
+    },
+    "Wally World": {
+        "sector": "Retail",
+        "initial_price": 142.0,
+        "volatility": 0.7,
+        "description": "Brick and mortar retail giant. Steady performer.",
+        "emoji": "🏪",
+        "color": "#3b82f6"
+    },
+    
+    # Crypto & Finance
+    "Pit-Coin": {
+        "sector": "Crypto",
+        "initial_price": 42.5,
+        "volatility": 2.5,
+        "description": "The original cryptocurrency. Digital gold or bubble?",
+        "emoji": "₿",
+        "color": "#f59e0b"
+    },
+    "Dogey Coin": {
+        "sector": "Crypto",
+        "initial_price": 0.12,
+        "volatility": 3.0,
+        "description": "Meme cryptocurrency. Much wow. Very volatile.",
+        "emoji": "🐕",
+        "color": "#eab308"
+    },
+    "Boinbase": {
+        "sector": "Finance",
+        "initial_price": 85.0,
+        "volatility": 1.8,
+        "description": "Cryptocurrency exchange platform.",
+        "emoji": "🏦",
+        "color": "#0ea5e9"
+    },
+    
+    # Entertainment & Streaming
+    "Netflux": {
+        "sector": "Entertainment",
+        "initial_price": 420.0,
+        "volatility": 1.2,
+        "description": "Streaming entertainment pioneer. Content is king.",
+        "emoji": "📺",
+        "color": "#dc2626"
+    },
+    "Dizzy": {
+        "sector": "Entertainment",
+        "initial_price": 95.0,
+        "volatility": 0.9,
+        "description": "Theme parks, movies, and streaming. Family entertainment.",
+        "emoji": "🏰",
+        "color": "#3b82f6"
+    },
+    "Spotifly": {
+        "sector": "Entertainment",
+        "initial_price": 145.0,
+        "volatility": 1.1,
+        "description": "Music and podcast streaming platform.",
+        "emoji": "🎵",
+        "color": "#22c55e"
+    },
+}
+
+# Sector correlations (stocks in same sector move together)
+SECTOR_CORRELATIONS = {
+    "Tech": ["Tech", "AI", "Semiconductors"],
+    "AI": ["Tech", "AI", "Semiconductors"],
+    "Semiconductors": ["Tech", "AI", "Semiconductors"],
+    "Crypto": ["Crypto", "Finance"],
+    "Finance": ["Crypto", "Finance"],
+    "Entertainment": ["Entertainment"],
+    "Automotive": ["Automotive", "Energy"],
+    "Energy": ["Automotive", "Energy"],
+    "Retail": ["Retail"],
+}
+
+def get_all_stocks():
+    """Get combined dictionary of all stocks."""
+    all_stocks = {}
+    all_stocks.update(PRIMARY_STOCKS)
+    all_stocks.update(STOCK_UNIVERSE)
+    return all_stocks
+
+def get_stock_sectors():
+    """Get list of unique sectors."""
+    all_stocks = get_all_stocks()
+    return list(set(s["sector"] for s in all_stocks.values()))
+
+def get_stocks_by_sector(sector: str):
+    """Get all stocks in a given sector."""
+    all_stocks = get_all_stocks()
+    return {name: data for name, data in all_stocks.items() if data["sector"] == sector}
+
+
+# Legacy compatibility - these still work but now point to the new structure
+EXTRA_STOCKS = [
+    (name, data["initial_price"]) 
+    for name, data in STOCK_UNIVERSE.items()
+]
+
+EXTRA_STOCK_VOLATILITY = {
+    name: data["volatility"] 
+    for name, data in STOCK_UNIVERSE.items()
+}
 
 
 # ===============================
@@ -166,8 +402,36 @@ class SimulationEngine:
                   volatility: str = "Medium",
                   event_intensity: int = 5,
                   loan_market_enabled: bool = True,
-                  random_seed: int = 42) -> SimulationState:
-        """Configure the simulation parameters."""
+                  random_seed: int = 42,
+                  custom_agent: Optional[Dict[str, Any]] = None,
+                  manual_events: Optional[List[Dict[str, Any]]] = None) -> SimulationState:
+        """Configure the simulation parameters.
+        
+        Args:
+            agent_count: Number of agents (1-500)
+            total_days: Simulation duration in days (1-365)
+            volatility: Market volatility level ("Low", "Medium", "High")
+            event_intensity: Event frequency (1-10)
+            loan_market_enabled: Whether loan market is active
+            random_seed: Seed for reproducibility
+            custom_agent: Custom agent configuration dict
+            manual_events: List of manually triggered events
+            
+        Returns:
+            Configured SimulationState
+            
+        Raises:
+            ValueError: If parameters are out of valid range
+        """
+        # Input validation
+        if not 1 <= agent_count <= 500:
+            raise ValueError(f"agent_count must be between 1 and 500, got {agent_count}")
+        if not 1 <= total_days <= 365:
+            raise ValueError(f"total_days must be between 1 and 365, got {total_days}")
+        if volatility not in ["Low", "Medium", "High"]:
+            raise ValueError(f"volatility must be 'Low', 'Medium', or 'High', got '{volatility}'")
+        if not 1 <= event_intensity <= 10:
+            raise ValueError(f"event_intensity must be between 1 and 10, got {event_intensity}")
         
         self._random.seed(random_seed)
         random.seed(random_seed)
@@ -181,22 +445,36 @@ class SimulationEngine:
             event_intensity=event_intensity,
             loan_market_enabled=loan_market_enabled,
             random_seed=random_seed,
+            custom_agent=custom_agent,
         )
         
-        # Initialize stocks
+        # Initialize primary stocks (off-brand parodies)
+        chevaco = PRIMARY_STOCKS["Chevaco"]
         self.state.stock_a = StockState(
-            name="A",
-            price=30.0,
-            initial_price=30.0,
-            price_history=[{"day": 0, "session": 0, "price": 30.0}]
+            name="Chevaco",
+            price=chevaco["initial_price"],
+            initial_price=chevaco["initial_price"],
+            price_history=[{"day": 0, "session": 0, "price": chevaco["initial_price"]}]
         )
         
+        zaptech = PRIMARY_STOCKS["ZapTech"]
         self.state.stock_b = StockState(
-            name="B", 
-            price=40.0,
-            initial_price=40.0,
-            price_history=[{"day": 0, "session": 0, "price": 40.0}]
+            name="ZapTech", 
+            price=zaptech["initial_price"],
+            initial_price=zaptech["initial_price"],
+            price_history=[{"day": 0, "session": 0, "price": zaptech["initial_price"]}]
         )
+
+        # Initialize extra stocks
+        self.state.extra_stocks = [
+            StockState(
+                name=name,
+                price=price,
+                initial_price=price,
+                price_history=[{"day": 0, "session": 0, "price": price}]
+            )
+            for name, price in EXTRA_STOCKS
+        ]
         
         # Initialize agents
         self.state.agents = []
@@ -240,8 +518,34 @@ class SimulationEngine:
                 anchoring_level=self._random.choice(["Low", "Medium", "High"]),
             )
             self.state.agents.append(agent)
+
+        # Apply custom agent personalization if provided
+        if custom_agent and self.state.agents:
+            target = self.state.agents[0]
+            display_name = custom_agent.get("display_name") or custom_agent.get("name")
+            if display_name:
+                target.name = display_name
+            if custom_agent.get("character"):
+                target.character = custom_agent["character"]
+            if custom_agent.get("herding_level"):
+                target.herding_level = custom_agent["herding_level"]
+            if custom_agent.get("loss_aversion_level"):
+                target.loss_aversion_level = custom_agent["loss_aversion_level"]
+            if custom_agent.get("overconfidence_level"):
+                target.overconfidence_level = custom_agent["overconfidence_level"]
+            if custom_agent.get("anchoring_level"):
+                target.anchoring_level = custom_agent["anchoring_level"]
         
-        # Generate events based on intensity
+        # Manual events from UI
+        self.state.manual_events = []
+        if manual_events:
+            for e in manual_events:
+                try:
+                    self.state.manual_events.append(MarketEvent(**e))
+                except Exception:
+                    continue
+
+        # Generate events based on intensity (includes manual events)
         self._generate_events()
         
         # Calculate initial metrics
@@ -252,6 +556,10 @@ class SimulationEngine:
     def _generate_events(self):
         """Generate market events based on event intensity."""
         self.state.events = []
+
+        # Start with manually injected events
+        if self.state.manual_events:
+            self.state.events.extend(self.state.manual_events)
         
         # Base events that always happen
         base_events = [
@@ -313,6 +621,12 @@ class SimulationEngine:
             ))
         
         # Sort by day
+        self.state.events.sort(key=lambda e: e.day)
+
+    def add_manual_event(self, event: MarketEvent):
+        """Add a manual event and include it in the active event list."""
+        self.state.manual_events.append(event)
+        self.state.events.append(event)
         self.state.events.sort(key=lambda e: e.day)
     
     def _update_metrics(self):
@@ -389,6 +703,9 @@ class SimulationEngine:
         
         # Generate forum messages (BBS)
         self._generate_forum_messages()
+
+        # Save snapshot for rewind
+        self._save_snapshot()
         
         # Check if simulation is complete
         if self.state.current_day >= self.state.total_days:
@@ -427,6 +744,17 @@ class SimulationEngine:
             "session": self.state.current_session,
             "price": self.state.stock_b.price
         })
+
+        # Extra stocks price update
+        for stock in self.state.extra_stocks:
+            mult = EXTRA_STOCK_VOLATILITY.get(stock.name, 1.0)
+            change = self._random.gauss(0, volatility_mult * mult) + event_impact * 0.6
+            stock.price = max(1, stock.price * (1 + change))
+            stock.price_history.append({
+                "day": self.state.current_day,
+                "session": self.state.current_session,
+                "price": stock.price
+            })
         
         # Simulate agent trading
         active_agents = [a for a in self.state.agents if not a.quit and not a.is_bankrupt]
@@ -701,10 +1029,19 @@ class SimulationEngine:
             price_a.append(day_prices_a[-1] if day_prices_a else None)
             price_b.append(day_prices_b[-1] if day_prices_b else None)
         
+        extra = {}
+        for stock in self.state.extra_stocks:
+            series = []
+            for day in days:
+                day_prices = [p["price"] for p in stock.price_history if p["day"] == day]
+                series.append(day_prices[-1] if day_prices else None)
+            extra[stock.name] = series
+
         return {
             "days": days,
             "stock_a": price_a,
-            "stock_b": price_b
+            "stock_b": price_b,
+            "extra_stocks": extra
         }
     
     def get_strategy_performance(self):
@@ -737,6 +1074,25 @@ class SimulationEngine:
     def get_recent_messages(self, count: int = 10) -> List[ForumMessage]:
         """Get the most recent forum messages."""
         return self.state.forum_messages[-count:]
+
+    def _save_snapshot(self):
+        """Save a deep snapshot of the current state for rewind."""
+        snapshot = {
+            "day": self.state.current_day,
+            "state": copy.deepcopy(self.state)
+        }
+        self.state.snapshots.append(snapshot)
+        # Keep last 60 snapshots to limit memory
+        if len(self.state.snapshots) > 60:
+            self.state.snapshots = self.state.snapshots[-60:]
+
+    def rewind_to_day(self, day: int) -> SimulationState:
+        """Rewind simulation state to a previous day if snapshot exists."""
+        candidates = [s for s in self.state.snapshots if s["day"] == day]
+        if not candidates:
+            return self.state
+        self.state = copy.deepcopy(candidates[-1]["state"])
+        return self.state
 
 
 # ===============================

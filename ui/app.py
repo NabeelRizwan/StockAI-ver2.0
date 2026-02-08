@@ -35,7 +35,7 @@ st.set_page_config(
     page_title="StockAI — Market Simulation Lab",
     page_icon="ui/favicon.svg",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 # ═══════════════════════════════════════════════════════════════════════════════

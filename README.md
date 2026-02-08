@@ -29,6 +29,26 @@ Comprehensive documentation for using the platform effectively.
 
 ## 🚀 Quick Start
 
+## 🏗️ Architecture & Workflow
+
+See `docs/architecture.mmd` and `docs/workflow.mmd` for editable Mermaid diagrams you can render or export.
+
+- Architecture: shows how `ui/app.py` interacts with `ui/simulation_engine.py`, local data (`record.py`, `res/`), logging, and optional LLM providers (Groq/Gemini/Mock).
+- Workflow: illustrates the user flow from UI configuration → simulation engine → optional LLM calls → logging and record export.
+
+If you prefer image files, render the Mermaid files in `docs/` using any Mermaid renderer or export via the Mermaid Live Editor (https://mermaid.live).
+
+### Visual Figures
+
+Architecture figure:
+
+![Architecture](fig/architecture.svg)
+
+Workflow figure:
+
+![Workflow](fig/workflow.svg)
+
+
 ### Prerequisites
 
 - Python 3.9+

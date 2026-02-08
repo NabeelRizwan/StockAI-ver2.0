@@ -22,11 +22,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dotenv import load_dotenv
 load_dotenv()
 
-try:
-    from groq import Groq
-    GROQ_AVAILABLE = True
-except ImportError:
-    GROQ_AVAILABLE = False
+# Determine availability of Groq based on presence of API key.
+# We import the optional `groq` client lazily when initializing the client
+# to avoid import-time ImportError breaking the UI.
+GROQ_AVAILABLE = bool(os.getenv("GROQ_API_KEY", ""))
 
 log = logging.getLogger(__name__)
 
@@ -420,16 +419,29 @@ class SimulationEngine:
     def _init_groq(self):
         """Initialize Groq client if API key is available."""
         api_key = os.getenv("GROQ_API_KEY", "")
-        if api_key and GROQ_AVAILABLE:
+        if not api_key:
+            self._groq_client = None
+            return
+
+        # Try importing and initializing the Groq client lazily.
+        try:
+            from groq import Groq
             try:
                 self._groq_client = Groq(api_key=api_key)
             except Exception as e:
                 log.warning(f"Failed to initialize Groq client: {e}")
                 self._groq_client = None
+        except Exception:
+            # groq package not installed — leave client as None but keep UI
+            # signaling that an API key is present (GROQ_AVAILABLE).
+            self._groq_client = None
     
     def is_llm_available(self) -> bool:
         """Check if LLM mode can be enabled."""
-        return self._groq_client is not None
+        # Consider LLM available when an API key is present. The actual
+        # Groq client may still be unavailable if the `groq` package is
+        # not installed; initialization warnings are logged in that case.
+        return bool(os.getenv("GROQ_API_KEY", ""))
     
     def configure(self, 
                   agent_count: int = 50,

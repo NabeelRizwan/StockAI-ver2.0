@@ -32,12 +32,6 @@ def check_imports() -> dict:
         checks["record_manager"] = str(e)
     
     try:
-        from ui.chatbot import StockAIAdvisor
-        checks["chatbot"] = True
-    except Exception as e:
-        checks["chatbot"] = str(e)
-    
-    try:
         from utils.rate_limiter import RateLimiter
         checks["rate_limiter"] = True
     except Exception as e:

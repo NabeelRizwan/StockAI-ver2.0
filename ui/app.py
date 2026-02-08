@@ -24,9 +24,6 @@ from simulation_engine import (
     PRIMARY_STOCKS, STOCK_UNIVERSE, get_all_stocks, get_stock_sectors, get_stocks_by_sector
 )
 
-# Import chatbot
-from chatbot import render_chatbot_sidebar, init_chatbot_state, render_floating_chatbot
-
 # Import additional styles  
 from styles import get_all_styles, STOCK_CARD_STYLES, NEWS_TICKER_STYLES, FLOATING_ORB_STYLES
 
@@ -123,60 +120,60 @@ st.markdown("""
    ═══════════════════════════════════════════════════════════════════════════════ */
 :root {
     /* Backgrounds */
-    --bg-primary: #06060a;
-    --bg-secondary: #0c0c12;
-    --bg-tertiary: #12121a;
-    --bg-card: rgba(22, 22, 32, 0.8);
-    --bg-card-solid: #161620;
-    --bg-card-hover: rgba(30, 30, 44, 0.9);
-    --bg-glass: rgba(255, 255, 255, 0.03);
+    --bg-primary: #000000;
+    --bg-secondary: #0f0f0f;
+    --bg-tertiary: #1a1a1a;
+    --bg-card: #121212;
+    --bg-card-solid: #141414;
+    --bg-card-hover: #1e1e1e;
+    --bg-glass: rgba(255, 255, 255, 0.06);
     
     /* Text */
-    --text-primary: #f8fafc;
-    --text-secondary: #a1a1aa;
-    --text-muted: #71717a;
-    --text-dim: #52525b;
+    --text-primary: #ffffff;
+    --text-secondary: #b4b4b4;
+    --text-muted: #8a8a8a;
+    --text-dim: #666666;
     
     /* Accent Colors */
-    --accent-green: #10b981;
-    --accent-green-dim: rgba(16, 185, 129, 0.15);
-    --accent-red: #ef4444;
-    --accent-red-dim: rgba(239, 68, 68, 0.15);
-    --accent-blue: #3b82f6;
-    --accent-blue-dim: rgba(59, 130, 246, 0.15);
-    --accent-purple: #8b5cf6;
-    --accent-purple-dim: rgba(139, 92, 246, 0.15);
-    --accent-yellow: #f59e0b;
-    --accent-yellow-dim: rgba(245, 158, 11, 0.15);
-    --accent-cyan: #06b6d4;
-    --accent-pink: #ec4899;
+    --accent-green: #26a69a;
+    --accent-green-dim: rgba(38, 166, 154, 0.15);
+    --accent-red: #ef5350;
+    --accent-red-dim: rgba(239, 83, 80, 0.15);
+    --accent-blue: #2962ff;
+    --accent-blue-dim: rgba(41, 98, 255, 0.15);
+    --accent-purple: #7c3aed;
+    --accent-purple-dim: rgba(124, 58, 237, 0.15);
+    --accent-yellow: #ffa726;
+    --accent-yellow-dim: rgba(255, 167, 38, 0.15);
+    --accent-cyan: #26c6da;
+    --accent-pink: #ec407a;
     
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, #10b981 0%, #3b82f6 50%, #8b5cf6 100%);
-    --gradient-green: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    --gradient-blue: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    --gradient-purple: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-    --gradient-warm: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
-    --gradient-dark: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+    --gradient-primary: linear-gradient(135deg, #26a69a 0%, #2962ff 100%);
+    --gradient-green: linear-gradient(135deg, #26a69a 0%, #1f8b7e 100%);
+    --gradient-blue: linear-gradient(135deg, #2962ff 0%, #1e4fc2 100%);
+    --gradient-purple: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+    --gradient-warm: linear-gradient(135deg, #ffa726 0%, #ef5350 100%);
+    --gradient-dark: linear-gradient(180deg, #000000 0%, #0a0a0a 100%);
     
     /* Borders */
-    --border-subtle: rgba(255, 255, 255, 0.06);
-    --border-light: rgba(255, 255, 255, 0.1);
-    --border-medium: rgba(255, 255, 255, 0.15);
+    --border-subtle: rgba(255, 255, 255, 0.1);
+    --border-light: rgba(255, 255, 255, 0.15);
+    --border-medium: rgba(255, 255, 255, 0.22);
     
     /* Shadows */
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
-    --shadow-glow-green: 0 0 40px rgba(16, 185, 129, 0.3);
-    --shadow-glow-blue: 0 0 40px rgba(59, 130, 246, 0.3);
-    --shadow-glow-purple: 0 0 40px rgba(139, 92, 246, 0.3);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 1px rgba(255, 255, 255, 0.05);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 2px rgba(255, 255, 255, 0.08);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 3px rgba(255, 255, 255, 0.1);
+    --shadow-glow-green: 0 0 16px rgba(38, 166, 154, 0.3), 0 0 32px rgba(38, 166, 154, 0.15);
+    --shadow-glow-blue: 0 0 16px rgba(41, 98, 255, 0.3), 0 0 32px rgba(41, 98, 255, 0.15);
+    --shadow-glow-purple: 0 0 16px rgba(124, 58, 237, 0.3), 0 0 32px rgba(124, 58, 237, 0.15);
     
     /* Spacing */
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-xl: 24px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 8px;
+    --radius-xl: 12px;
     --radius-full: 9999px;
 }
 
@@ -231,8 +228,7 @@ code, pre, .monospace {
    METRIC CARDS - Premium Style
    ═══════════════════════════════════════════════════════════════════════════════ */
 .metric-card {
-    background: var(--bg-card);
-    backdrop-filter: blur(20px);
+    background: var(--bg-card-solid);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
     padding: 24px;
@@ -240,12 +236,12 @@ code, pre, .monospace {
     position: relative;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    min-height: 220px;
-    height: 220px;
+    min-height: 180px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    transform-style: preserve-3d;
 }
 
 .metric-card::before {
@@ -254,16 +250,16 @@ code, pre, .monospace {
     top: 0;
     left: 0;
     right: 0;
-    height: 3px;
-    background: var(--gradient-primary);
+    height: 2px;
+    background: var(--border-medium);
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.2s ease;
 }
 
 .metric-card:hover {
-    transform: translateY(-4px);
-    border-color: var(--border-medium);
-    box-shadow: var(--shadow-lg);
+    transform: perspective(800px) rotateY(2deg) rotateX(-2deg) translateY(-4px);
+    border-color: var(--border-light);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 20px rgba(41, 98, 255, 0.15);
 }
 
 .metric-card:hover::before {
@@ -271,9 +267,11 @@ code, pre, .monospace {
 }
 
 .metric-icon {
-    font-size: clamp(24px, 5vw, 48px);
-    margin-bottom: 12px;
+    /* Reduced emoji/icon size for a more professional look */
+    font-size: clamp(16px, 3.2vw, 28px);
+    margin-bottom: 8px;
     display: block;
+    line-height: 1;
 }
 
 .metric-value {
@@ -337,12 +335,12 @@ code, pre, .monospace {
 .brand-icon {
     width: 44px;
     height: 44px;
-    background: linear-gradient(135deg, #10b981 0%, #3b82f6 50%, #8b5cf6 100%);
-    border-radius: 12px;
+    background: var(--accent-blue);
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    box-shadow: var(--shadow-sm);
 }
 
 .brand-icon svg {
@@ -354,10 +352,7 @@ code, pre, .monospace {
     margin: 0 0 -2px 0;
     font-size: clamp(26px, 5.5vw, 36px);
     font-weight: 800;
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--text-primary);
     line-height: 1;
 }
 
@@ -435,11 +430,12 @@ code, pre, .monospace {
 .stTabs [data-baseweb="tab"] {
     background: transparent;
     border-radius: var(--radius-md);
-    padding: 14px 28px;
+    padding: 12px 24px;
     color: var(--text-secondary);
     font-weight: 600;
     font-size: 14px;
     transition: all 0.2s ease;
+    border-bottom: 2px solid transparent;
 }
 
 .stTabs [data-baseweb="tab"]:hover {
@@ -448,9 +444,10 @@ code, pre, .monospace {
 }
 
 .stTabs [aria-selected="true"] {
-    background: var(--gradient-primary) !important;
-    color: white !important;
-    box-shadow: var(--shadow-glow-green);
+    background: var(--bg-card) !important;
+    color: var(--accent-blue) !important;
+    border-bottom: 2px solid var(--accent-blue) !important;
+    box-shadow: none;
 }
 
 .stTabs [data-baseweb="tab-panel"] {
@@ -469,25 +466,31 @@ code, pre, .monospace {
    BUTTONS
    ═══════════════════════════════════════════════════════════════════════════════ */
 .stButton > button {
-    background: var(--gradient-green);
+    background: var(--accent-green);
     color: white;
     border: none;
     border-radius: var(--radius-md);
-    padding: 14px 28px;
+    padding: 12px 24px;
     font-weight: 600;
     font-size: 14px;
     letter-spacing: 0.3px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
     box-shadow: var(--shadow-sm);
 }
 
 .stButton > button:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-glow-green);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 20px rgba(38, 166, 154, 0.4);
+    background: #1f8b7e;
+}
+
+.stButton > button[type="primary"] {
+    box-shadow: 0 0 15px rgba(38, 166, 154, 0.3), var(--shadow-sm);
+    animation: pulse 2s ease-in-out infinite;
 }
 
 .stButton > button:active {
-    transform: translateY(-1px);
+    transform: translateY(0);
 }
 
 /* Secondary button */
@@ -501,6 +504,7 @@ code, pre, .monospace {
     background: var(--bg-card-hover);
     border-color: var(--border-medium);
     box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -852,11 +856,17 @@ code, pre, .monospace {
     font-weight: 900 !important;
     letter-spacing: -0.04em !important;
     background: var(--gradient-primary);
+    background-size: 200% 200%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     margin-bottom: 6px;
     line-height: 0.85;
+    animation: gradientShift 4s ease infinite;
+}
+    margin-bottom: 6px;
+    line-height: 0.85;
+    animation: gradientShift 4s ease infinite;
 }
 
 .landing-subtitle {
@@ -1424,13 +1434,13 @@ def get_status_class(status: str) -> str:
 def get_status_emoji(status: str) -> str:
     """Get emoji for status."""
     emojis = {
-        "IDLE": "⏸️",
-        "CONFIGURED": "⚙️",
-        "RUNNING": "▶️",
-        "PAUSED": "⏯️",
-        "COMPLETED": "✅"
+        "IDLE": "●",
+        "CONFIGURED": "●",
+        "RUNNING": "●",
+        "PAUSED": "●",
+        "COMPLETED": "●"
     }
-    return emojis.get(status, "⏸️")
+    return emojis.get(status, "●")
 
 def create_sparkline(values: list, color: str = "#10b981") -> go.Figure:
     """Create a mini sparkline chart."""
@@ -1496,9 +1506,9 @@ def render_landing_page():
     cols = st.columns(4)
     stats = [
         ("📅", "264", "Trading Days/Year", "metric-green"),
-        ("🔄", "3", "Sessions Per Day", "metric-blue"),
+        ("🔁", "3", "Sessions Per Day", "metric-blue"),
         ("🧠", "4", "Behavioral Biases", "metric-purple"),
-        ("📊", "∞", "Stock Universes", "metric-yellow"),
+        ("🌐", "∞", "Stock Universes", "metric-yellow"),
     ]
     
     for col, (icon, value, label, color) in zip(cols, stats):
@@ -1514,11 +1524,11 @@ def render_landing_page():
     # Tech stack
     st.markdown("""
     <div class="tech-stack">
-        <div class="tech-item"><span>🐍</span> Python</div>
-        <div class="tech-item"><span>📊</span> Streamlit</div>
-        <div class="tech-item"><span>📈</span> Plotly</div>
-        <div class="tech-item"><span>🧠</span> Multi-Agent AI</div>
-        <div class="tech-item"><span>💹</span> Behavioral Finance</div>
+        <div class="tech-item">Python</div>
+        <div class="tech-item">Streamlit</div>
+        <div class="tech-item">Plotly</div>
+        <div class="tech-item">Multi-Agent AI</div>
+        <div class="tech-item">Behavioral Finance</div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1650,7 +1660,7 @@ def render_guidelines_page():
     
     col1, col2, col3 = st.columns([2, 1, 2])
     with col2:
-        if st.button("🚀 Start Simulation", width='stretch', type="primary"):
+        if st.button("Start Simulation", width='stretch', type="primary"):
             st.session_state.app_started = True
             st.session_state.show_guidelines = False
             st.rerun()
@@ -1714,7 +1724,7 @@ def render_header():
         
         with col4:
             st.markdown("<div style='padding-top: 8px;'></div>", unsafe_allow_html=True)
-            if st.button("📖 Guidelines", key="header_guidelines", width='stretch'):
+            if st.button("Guidelines", key="header_guidelines", width='stretch'):
                 st.session_state.show_guidelines = True
                 st.session_state.app_started = False
                 st.rerun()
@@ -1784,21 +1794,36 @@ def render_overview():
     """Render the overview dashboard."""
     state = engine.get_state()
     
-    # Demo Mode Banner - indicate simulation uses mock behavior not real LLM
+    # Mode Banner - indicate simulation mode (Demo vs LLM)
     if state.status not in ["IDLE"]:
-        st.markdown("""
-        <div style="background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(168,85,247,0.1)); 
-                    border: 1px solid rgba(139,92,246,0.3); border-radius: 8px; 
-                    padding: 10px 16px; margin-bottom: 16px; 
-                    display: flex; align-items: center; gap: 12px;">
-            <span style="font-size: 18px;">🎮</span>
-            <div style="flex: 1;">
-                <span style="font-weight: 600; color: var(--accent-purple);">Demo Mode</span>
-                <span style="color: var(--text-muted); font-size: 13px;"> — Agents use simulated behavior patterns. 
-                For LLM-driven trading, use the CLI simulation.</span>
+        if state.llm_mode:
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, rgba(38,166,154,0.15), rgba(16,185,129,0.15)); 
+                        border: 1px solid rgba(38,166,154,0.4); border-radius: 8px; 
+                        padding: 10px 16px; margin-bottom: 16px; 
+                        display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 18px;">🧠</span>
+                <div style="flex: 1;">
+                    <span style="font-weight: 600; color: var(--accent-green);">LLM Mode Active</span>
+                    <span style="color: var(--text-secondary); font-size: 13px;"> — Agents powered by Groq Llama 3.3 70B. 
+                    {state.llm_calls_made} API calls made.</span>
+                </div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div style="background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(168,85,247,0.1)); 
+                        border: 1px solid rgba(139,92,246,0.3); border-radius: 8px; 
+                        padding: 10px 16px; margin-bottom: 16px; 
+                        display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 18px;">🎮</span>
+                <div style="flex: 1;">
+                    <span style="font-weight: 600; color: var(--accent-purple);">Demo Mode</span>
+                    <span style="color: var(--text-muted); font-size: 13px;"> — Agents use simulated behavior patterns. 
+                    Enable LLM Mode in Controls to use AI-powered trading.</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
     
     # News ticker at the top
     if state.current_day > 0:
@@ -1806,7 +1831,7 @@ def render_overview():
         st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
     
     # Key Metrics Row
-    st.markdown('<p class="section-title">📊 Market Overview</p>', unsafe_allow_html=True)
+    st.markdown('<p class="section-title">Market Overview</p>', unsafe_allow_html=True)
     
     cols = st.columns(5)
     
@@ -1835,14 +1860,13 @@ def render_overview():
     col1, col2 = st.columns([2.5, 1])
     
     with col1:
-        st.markdown('<p class="section-title">📈 Stock Performance</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-title">Stock Performance</p>', unsafe_allow_html=True)
         
         if state.stock_a and len(state.stock_a.price_history) > 1:
             price_data = engine.get_price_history_df()
             if not price_data:
                 st.markdown("""
                 <div class="empty-state">
-                    <div class="empty-state-icon">📈</div>
                     <div class="empty-state-title">No Price Data Yet</div>
                     <div class="empty-state-description">Configure and run the simulation to see price charts</div>
                 </div>
@@ -1999,7 +2023,7 @@ def render_overview():
             """, unsafe_allow_html=True)
     
     with col2:
-        st.markdown('<p class="section-title">💬 Agent Forum</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-title">Agent Forum</p>', unsafe_allow_html=True)
         
         messages = engine.get_recent_messages(6)
         
@@ -2031,7 +2055,7 @@ def render_overview():
     if state.current_day > 0:
         events = engine.get_today_events()
         if events:
-            st.markdown('<p class="section-title">📰 Today\'s Market Events</p>', unsafe_allow_html=True)
+            st.markdown('<p class="section-title">Today\'s Market Events</p>', unsafe_allow_html=True)
             
             cols = st.columns(min(len(events), 3))
             for col, event in zip(cols, events[:3]):
@@ -2058,16 +2082,47 @@ def render_controls():
     col1, col2 = st.columns([1.2, 1])
     
     with col1:
-        st.markdown('<p class="section-title">⚙️ Simulation Configuration</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-title">Simulation Configuration</p>', unsafe_allow_html=True)
         st.markdown('<p class="section-subtitle">Set up your simulation parameters</p>', unsafe_allow_html=True)
         
         with st.form("config_form", border=False):
+            # LLM Mode toggle
+            st.markdown("**🧠 AI Mode**")
+            llm_available = engine.is_llm_available()
+            llm_mode = st.toggle(
+                "Enable LLM Mode (Groq Llama 3.3 70B)",
+                value=False,
+                disabled=not llm_available,
+                help="Uses real AI to make trading decisions. Requires GROQ_API_KEY in .env" if llm_available else "GROQ_API_KEY not found in .env file"
+            )
+            
+            if llm_mode:
+                st.markdown("""
+                <div style="background: rgba(38,166,154,0.1); border: 1px solid rgba(38,166,154,0.3); 
+                            border-radius: 6px; padding: 8px 12px; font-size: 12px; color: var(--text-secondary);">
+                    ⚡ <strong style="color: var(--accent-green);">LLM Mode</strong> — Each agent uses Groq Llama 3.3 70B for decisions. 
+                    Max 20 agents due to API rate limits. Simulation runs slower (~3s per agent per session).
+                </div>
+                """, unsafe_allow_html=True)
+            elif not llm_available:
+                st.markdown("""
+                <div style="background: rgba(239,83,80,0.1); border: 1px solid rgba(239,83,80,0.3); 
+                            border-radius: 6px; padding: 8px 12px; font-size: 12px; color: var(--text-secondary);">
+                    ⚠️ GROQ_API_KEY not found. Add it to your <code>.env</code> file to enable LLM mode. 
+                    Get a free key at <a href="https://console.groq.com" target="_blank" style="color: var(--accent-blue);">console.groq.com</a>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+            
             # Agent settings
             st.markdown("**Agent Settings**")
             fcol1, fcol2 = st.columns(2)
             with fcol1:
-                agent_count = st.slider("Number of Agents", 10, 100, 50, 5,
-                    help="More agents = more complex market dynamics")
+                max_agents = 20 if llm_mode else 100
+                default_agents = 10 if llm_mode else 50
+                agent_count = st.slider("Number of Agents", 2, max_agents, min(default_agents, max_agents), 1 if llm_mode else 5,
+                    help=f"{'Max 20 in LLM mode due to API limits' if llm_mode else 'More agents = more complex market dynamics'}")
             with fcol2:
                 total_days = st.slider("Simulation Days", 10, 264, 30, 5,
                     help="264 days = 1 trading year")
@@ -2110,7 +2165,7 @@ def render_controls():
             </style>
             """, unsafe_allow_html=True)
             
-            submitted = st.form_submit_button("💾 Apply Configuration", width='stretch')
+            submitted = st.form_submit_button("Apply Configuration", width='stretch')
             
             if submitted:
                 try:
@@ -2122,7 +2177,8 @@ def render_controls():
                         loan_market_enabled=loan_enabled,
                         random_seed=random_seed,
                         custom_agent=st.session_state.custom_agent if st.session_state.custom_agent.get("enabled") else None,
-                        manual_events=st.session_state.manual_events
+                        manual_events=st.session_state.manual_events,
+                        llm_mode=llm_mode,
                     )
                     st.success("✅ Configuration applied successfully!")
                     st.rerun()
@@ -2132,7 +2188,7 @@ def render_controls():
                     st.error(f"❌ Unexpected error: {e}")
     
     with col2:
-        st.markdown('<p class="section-title">🎮 Simulation Controls</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-title">Simulation Controls</p>', unsafe_allow_html=True)
         st.markdown('<p class="section-subtitle">Run and manage your simulation</p>', unsafe_allow_html=True)
         
         # Control buttons
@@ -2140,9 +2196,10 @@ def render_controls():
         
         with btn_cols[0]:
             run_disabled = state.status not in ["CONFIGURED", "PAUSED", "RUNNING"]
-            if st.button("▶️ Run Day", width='stretch', disabled=run_disabled):
+            if st.button("Run Day", width='stretch', disabled=run_disabled):
                 try:
-                    with st.spinner("Simulating..."):
+                    spinner_msg = "🧠 LLM agents thinking..." if state.llm_mode else "Simulating..."
+                    with st.spinner(spinner_msg):
                         engine.run_day()
                     st.rerun()
                 except Exception as e:
@@ -2151,16 +2208,16 @@ def render_controls():
         
         with btn_cols[1]:
             if state.status == "RUNNING":
-                if st.button("⏸️ Pause", width='stretch'):
+                if st.button("Pause", width='stretch'):
                     engine.pause()
                     st.rerun()
             else:
-                if st.button("⏸️ Pause", width='stretch', disabled=True):
+                if st.button("Pause", width='stretch', disabled=True):
                     pass
         
         with btn_cols[2]:
             reset_disabled = state.status == "IDLE"
-            if st.button("🔄 Reset", width='stretch', disabled=reset_disabled):
+            if st.button("Reset", width='stretch', disabled=reset_disabled):
                 engine.reset()
                 st.session_state.auto_run = False
                 st.rerun()
@@ -2244,10 +2301,12 @@ def render_controls():
             <p><strong>Status:</strong> <span class="status-badge {get_status_class(state.status)}" style="padding: 4px 12px; font-size: 11px;">
                 {get_status_emoji(state.status)} {state.status}
             </span></p>
+            <p><strong>Mode:</strong> {'🧠 LLM (Groq Llama 3.3)' if state.llm_mode else '🎮 Demo (Simulated)'}</p>
             <p><strong>Progress:</strong> Day {state.current_day} of {state.total_days}</p>
             <p><strong>Active Agents:</strong> {state.active_agents}</p>
             <p><strong>Volatility:</strong> {state.volatility}</p>
             <p><strong>Loan Market:</strong> {'Enabled' if state.loan_market_enabled else 'Disabled'}</p>
+            {'<p><strong>LLM API Calls:</strong> ' + str(state.llm_calls_made) + '</p>' if state.llm_mode else ''}
         </div>
         """, unsafe_allow_html=True)
 
@@ -2312,7 +2371,7 @@ def render_controls():
         
         qcol1, qcol2 = st.columns(2)
         with qcol1:
-            if st.button("📖 Guidelines", width='stretch', type="secondary"):
+            if st.button("Guidelines", width='stretch', type="secondary"):
                 st.session_state.show_guidelines = True
                 st.session_state.app_started = False
                 st.rerun()
@@ -2342,7 +2401,7 @@ def render_market():
     # Header with export button
     header_col1, header_col2 = st.columns([3, 1])
     with header_col1:
-        st.markdown('<p class="section-title">📈 Market Analysis</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-title">Market Analysis</p>', unsafe_allow_html=True)
     with header_col2:
         # Data export dropdown
         export_format = st.selectbox("Export Data", ["Select...", "CSV", "JSON"], key="market_export_format", label_visibility="collapsed")
@@ -2710,7 +2769,7 @@ def render_market():
     # Extra stocks (fun off-brand names with full metadata)
     if state.extra_stocks:
         st.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
-        st.markdown('<p class="section-title">🌐 Extended Market Universe</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-title">Extended Market Universe</p>', unsafe_allow_html=True)
         st.markdown('<p class="section-subtitle">Off-brand parody stocks from across all sectors</p>', unsafe_allow_html=True)
         
         # Group stocks by sector
@@ -2858,7 +2917,7 @@ def render_personalize():
         st.session_state.avatar_type = st.session_state.custom_agent.get("avatar_type", "icon")
 
     # Header Section
-    st.markdown('<p class="section-title">🎭 Create Your Agent</p>', unsafe_allow_html=True)
+    st.markdown('<p class="section-title">Create Your Agent</p>', unsafe_allow_html=True)
     st.markdown('<p class="section-subtitle">Design a personalized trading agent with unique traits and appearance</p>', unsafe_allow_html=True)
     
     # Main 2-column layout: Settings (left) | Preview (right)
@@ -3151,19 +3210,13 @@ def render_personalize():
 # AI ADVISOR TAB
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def render_ai_advisor():
-    """Render the AI Advisor chatbot interface."""
-    from chatbot import render_chatbot_main
-    render_chatbot_main(engine.state)
-
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # CREDITS TAB
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def render_credits():
     """Render credits page."""
-    st.markdown('<p class="section-title">👥 Credits</p>', unsafe_allow_html=True)
+    st.markdown('<p class="section-title">Credits</p>', unsafe_allow_html=True)
     st.markdown('<p class="section-subtitle">Meet the team behind StockAI</p>', unsafe_allow_html=True)
 
     cols = st.columns(3)
@@ -3324,7 +3377,7 @@ def render_agents():
         """, unsafe_allow_html=True)
         return
     
-    st.markdown('<p class="section-title">🤖 Agent Intelligence</p>', unsafe_allow_html=True)
+    st.markdown('<p class="section-title">Agent Intelligence</p>', unsafe_allow_html=True)
     st.markdown('<p class="section-subtitle">Deep dive into individual agent profiles and behavior</p>', unsafe_allow_html=True)
     
     # Agent selector
@@ -3373,11 +3426,11 @@ def render_agents():
         with col1:
             st.markdown(f"""
             <div class="metric-card" style="{card_border} {card_glow}">
-                <span class="metric-icon">{'⭐' if is_custom_agent else '👤'}</span>
+                <span class="metric-icon">{'⭐' if is_custom_agent else ''}</span>
                 <div class="metric-value metric-blue" style="font-size: 18px;">{agent.name}</div>
                 <div class="metric-label">{agent.character}</div>
                 <div class="metric-change" style="background: {'var(--accent-red-dim)' if agent.is_bankrupt else 'var(--accent-green-dim)'}; color: {'var(--accent-red)' if agent.is_bankrupt else 'var(--accent-green)'};">
-                    {'🔴 Bankrupt' if agent.is_bankrupt else '🟢 Active'}
+                    <span style="font-size: 10px;">●</span> {'Bankrupt' if agent.is_bankrupt else 'Active'}
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -3386,7 +3439,6 @@ def render_agents():
             pnl_color = "metric-green" if agent.pnl_percent >= 0 else "metric-red"
             st.markdown(f"""
             <div class="metric-card" style="{card_border} {card_glow}">
-                <span class="metric-icon">💰</span>
                 <div class="metric-value {pnl_color}">{format_percent(agent.pnl_percent)}</div>
                 <div class="metric-label">Total P&L</div>
                 <div class="metric-change" style="background: var(--bg-tertiary);">
@@ -3398,7 +3450,6 @@ def render_agents():
         with col3:
             st.markdown(f"""
             <div class="metric-card">
-                <span class="metric-icon">💵</span>
                 <div class="metric-value metric-green">{format_currency(agent.cash)}</div>
                 <div class="metric-label">Cash Balance</div>
             </div>
@@ -3409,7 +3460,6 @@ def render_agents():
             stock_b_name = state.stock_b.name if state.stock_b else "B"
             st.markdown(f"""
             <div class="metric-card">
-                <span class="metric-icon">📊</span>
                 <div class="metric-value metric-purple">{agent.stock_a_amount + agent.stock_b_amount}</div>
                 <div class="metric-label">Total Shares</div>
                 <div class="metric-change" style="background: var(--bg-tertiary);">
@@ -3424,7 +3474,7 @@ def render_agents():
         col1, col2 = st.columns([1, 1.5])
         
         with col1:
-            st.markdown("#### 🧠 Behavioral Profile")
+            st.markdown("#### Behavioral Profile")
             
             # Calculate behavioral metrics from actual simulation data
             # Calculate win rate from action history
@@ -3468,7 +3518,7 @@ def render_agents():
                 """, unsafe_allow_html=True)
         
         with col2:
-            st.markdown("#### 📋 Recent Trading Activity")
+            st.markdown("#### Recent Trading Activity")
             
             if agent.action_history:
                 for action in agent.action_history[-5:][::-1]:
@@ -3518,7 +3568,7 @@ def render_agents():
         st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
 
         # Global reasoning feed
-        st.markdown("#### 🧠 Agent Reasoning Feed")
+        st.markdown("#### Agent Reasoning Feed")
         feed = []
         for a in state.agents:
             for action in a.action_history[-10:]:
@@ -3581,7 +3631,7 @@ def render_analysis():
         """, unsafe_allow_html=True)
         return
     
-    st.markdown('<p class="section-title">📉 Comparative Analysis</p>', unsafe_allow_html=True)
+    st.markdown('<p class="section-title">Comparative Analysis</p>', unsafe_allow_html=True)
     st.markdown('<p class="section-subtitle">Compare strategy performance and identify top performers</p>', unsafe_allow_html=True)
     
     # Strategy performance
@@ -3685,7 +3735,7 @@ def render_analysis():
     st.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
     
     # Top performers
-    st.markdown("#### 🏆 Top 10 Performers")
+    st.markdown("#### Top 10 Performers")
     
     # Check for custom agent
     custom_agent_name = st.session_state.custom_agent.get("display_name", "")
@@ -3797,7 +3847,7 @@ def render_analysis():
     st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
 
     # Event timeline
-    st.markdown("#### 🗓️ Event Timeline")
+    st.markdown("#### Event Timeline")
     if state.events:
         fcol1, fcol2, fcol3 = st.columns(3)
         with fcol1:
@@ -3950,9 +4000,6 @@ def main():
             render_landing_page()
         return
     
-    # Initialize chatbot
-    init_chatbot_state()
-    
     # Main application
     render_header()
     
@@ -3986,9 +4033,12 @@ def main():
     with tabs[5]:
         render_personalize()
     
-    # Floating AI Chat Orb with 3D glass effect and particle animation
-    # TODO: Re-enable after isolating chatbot to prevent interference with other buttons
-    # render_floating_chatbot(engine.state)
+    # Chatbot UI: use the Streamlit-native fallback by default (floating orb disabled)
+    try:
+        from chatbot.ui.streamlit_chat import render_streamlit_chat
+        render_streamlit_chat(app_context=engine.state)
+    except Exception:
+        pass  # chatbot is non-critical, fail silently
     
     # Footer with Credits link only (Guidelines moved to header)
     st.markdown("""<div style='height: 40px;'></div>""", unsafe_allow_html=True)

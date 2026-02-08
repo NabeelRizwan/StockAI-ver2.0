@@ -10,12 +10,25 @@ import os
 import random
 import json
 import copy
+import time
+import logging
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
 from datetime import datetime
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from dotenv import load_dotenv
+load_dotenv()
+
+try:
+    from groq import Groq
+    GROQ_AVAILABLE = True
+except ImportError:
+    GROQ_AVAILABLE = False
+
+log = logging.getLogger(__name__)
 
 # ===============================
 # DATA CLASSES
@@ -134,6 +147,10 @@ class SimulationState:
     market_sentiment: str = "neutral"  # bullish, bearish, neutral
     herding_percentage: float = 0
     system_risk: str = "LOW"
+    
+    # LLM Mode
+    llm_mode: bool = False
+    llm_calls_made: int = 0
 
 
 # ===============================
@@ -389,12 +406,30 @@ EXTRA_STOCK_VOLATILITY = {
 class SimulationEngine:
     """
     Main simulation engine that manages the market simulation.
-    This is a simplified version that runs without LLM calls.
+    Supports both demo mode (random) and LLM mode (Groq-powered decisions).
     """
     
     def __init__(self):
         self.state = SimulationState()
         self._random = random.Random()
+        self._groq_client = None
+        self._agent_chat_histories: Dict[int, list] = {}
+        self._last_llm_call_time = 0
+        self._init_groq()
+    
+    def _init_groq(self):
+        """Initialize Groq client if API key is available."""
+        api_key = os.getenv("GROQ_API_KEY", "")
+        if api_key and GROQ_AVAILABLE:
+            try:
+                self._groq_client = Groq(api_key=api_key)
+            except Exception as e:
+                log.warning(f"Failed to initialize Groq client: {e}")
+                self._groq_client = None
+    
+    def is_llm_available(self) -> bool:
+        """Check if LLM mode can be enabled."""
+        return self._groq_client is not None
     
     def configure(self, 
                   agent_count: int = 50,
@@ -404,18 +439,20 @@ class SimulationEngine:
                   loan_market_enabled: bool = True,
                   random_seed: int = 42,
                   custom_agent: Optional[Dict[str, Any]] = None,
-                  manual_events: Optional[List[Dict[str, Any]]] = None) -> SimulationState:
+                  manual_events: Optional[List[Dict[str, Any]]] = None,
+                  llm_mode: bool = False) -> SimulationState:
         """Configure the simulation parameters.
         
         Args:
             agent_count: Number of agents (1-500)
             total_days: Simulation duration in days (1-365)
-            volatility: Market volatility level ("Low", "Medium", "High")
+            volatility: Market volatility level ("Low", "Medium", "High", "Extreme")
             event_intensity: Event frequency (1-10)
             loan_market_enabled: Whether loan market is active
             random_seed: Seed for reproducibility
             custom_agent: Custom agent configuration dict
             manual_events: List of manually triggered events
+            llm_mode: Whether to use LLM-powered agent decisions
             
         Returns:
             Configured SimulationState
@@ -428,13 +465,22 @@ class SimulationEngine:
             raise ValueError(f"agent_count must be between 1 and 500, got {agent_count}")
         if not 1 <= total_days <= 365:
             raise ValueError(f"total_days must be between 1 and 365, got {total_days}")
-        if volatility not in ["Low", "Medium", "High"]:
-            raise ValueError(f"volatility must be 'Low', 'Medium', or 'High', got '{volatility}'")
+        if volatility not in ["Low", "Medium", "High", "Extreme"]:
+            raise ValueError(f"volatility must be 'Low', 'Medium', 'High', or 'Extreme', got '{volatility}'")
         if not 1 <= event_intensity <= 10:
             raise ValueError(f"event_intensity must be between 1 and 10, got {event_intensity}")
         
+        # Validate LLM mode
+        if llm_mode and not self.is_llm_available():
+            raise ValueError("LLM mode requires a valid GROQ_API_KEY in your .env file")
+        if llm_mode and agent_count > 20:
+            raise ValueError("LLM mode supports max 20 agents due to API rate limits. Reduce agent count.")
+        
         self._random.seed(random_seed)
         random.seed(random_seed)
+        
+        # Reset LLM chat histories
+        self._agent_chat_histories = {}
         
         self.state = SimulationState(
             status="CONFIGURED",
@@ -446,6 +492,7 @@ class SimulationEngine:
             loan_market_enabled=loan_market_enabled,
             random_seed=random_seed,
             custom_agent=custom_agent,
+            llm_mode=llm_mode,
         )
         
         # Initialize primary stocks (off-brand parodies)
@@ -761,7 +808,10 @@ class SimulationEngine:
         self._random.shuffle(active_agents)
         
         for agent in active_agents:
-            self._simulate_agent_action(agent)
+            if self.state.llm_mode and self._groq_client:
+                self._llm_agent_action(agent)
+            else:
+                self._simulate_agent_action(agent)
         
         # Update agent values
         for agent in self.state.agents:
@@ -888,6 +938,167 @@ class SimulationEngine:
         
         return base_reason
     
+    def _call_groq(self, agent_id: int, prompt: str) -> str:
+        """Call Groq API with rate limiting (max ~25/min to stay safe)."""
+        if not self._groq_client:
+            return ""
+        
+        # Rate limit: at least 2.5s between calls
+        now = time.time()
+        elapsed = now - self._last_llm_call_time
+        if elapsed < 2.5:
+            time.sleep(2.5 - elapsed)
+        
+        # Manage per-agent chat history
+        if agent_id not in self._agent_chat_histories:
+            self._agent_chat_histories[agent_id] = []
+        
+        history = self._agent_chat_histories[agent_id]
+        history.append({"role": "user", "content": prompt})
+        
+        # Keep history manageable (last 6 messages)
+        if len(history) > 6:
+            history = history[-6:]
+            self._agent_chat_histories[agent_id] = history
+        
+        try:
+            response = self._groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=history,
+                temperature=0.8,
+                max_tokens=300,
+            )
+            reply = response.choices[0].message.content or ""
+            history.append({"role": "assistant", "content": reply})
+            self._last_llm_call_time = time.time()
+            self.state.llm_calls_made += 1
+            return reply
+        except Exception as e:
+            log.warning(f"Groq API error for agent {agent_id}: {e}")
+            time.sleep(3)  # Back off on error
+            return ""
+    
+    def _llm_agent_action(self, agent: AgentState):
+        """Use LLM (Groq) to decide an agent's trading action."""
+        
+        # Build context-rich prompt
+        recent_events = [e for e in self.state.events if e.day >= max(1, self.state.current_day - 2)]
+        events_text = "; ".join([f"{e.title} ({e.severity})" for e in recent_events[-3:]]) or "No major events"
+        
+        # Recent forum sentiment
+        recent_msgs = [m for m in self.state.forum_messages if m.day >= max(1, self.state.current_day - 1)]
+        forum_text = "; ".join([f"{m.agent_name}: {m.message}" for m in recent_msgs[-3:]]) or "No forum chatter"
+        
+        # Price trends
+        stock_a_prices = [p["price"] for p in (self.state.stock_a.price_history or [])[-6:]]
+        stock_b_prices = [p["price"] for p in (self.state.stock_b.price_history or [])[-6:]]
+        
+        a_trend = "rising" if len(stock_a_prices) >= 2 and stock_a_prices[-1] > stock_a_prices[0] else "falling" if len(stock_a_prices) >= 2 else "stable"
+        b_trend = "rising" if len(stock_b_prices) >= 2 and stock_b_prices[-1] > stock_b_prices[0] else "falling" if len(stock_b_prices) >= 2 else "stable"
+        
+        prompt = f"""You are a stock trading agent in a market simulation.
+
+Your profile:
+- Name: {agent.name}
+- Strategy: {agent.character}
+- Cash: ${agent.cash:,.0f}
+- {self.state.stock_a.name} holdings: {agent.stock_a_amount} shares @ ${self.state.stock_a.price:.2f} (trend: {a_trend})
+- {self.state.stock_b.name} holdings: {agent.stock_b_amount} shares @ ${self.state.stock_b.price:.2f} (trend: {b_trend})
+- Portfolio P&L: {agent.pnl_percent:+.1f}%
+
+Market context:
+- Day {self.state.current_day}, Session {self.state.current_session}/3
+- Volatility: {self.state.volatility}
+- Sentiment: {self.state.market_sentiment}
+- Recent events: {events_text}
+- Forum chatter: {forum_text}
+
+Decide your action. Respond with ONLY a JSON object (no explanation):
+{{
+  "action_type": "buy" | "sell" | "hold",
+  "stock": "A" | "B",
+  "amount": <integer number of shares>,
+  "reasoning": "<one sentence>"
+}}
+
+Rules:
+- You can only buy if you have enough cash
+- You can only sell shares you own
+- Amount must be a positive integer
+- If unsure, choose hold"""
+        
+        resp = self._call_groq(agent.id, prompt)
+        if not resp:
+            return  # API failed, skip this agent
+        
+        # Parse LLM response
+        try:
+            # Extract JSON from response (handle markdown code blocks)
+            json_str = resp
+            if "```" in json_str:
+                json_str = json_str.split("```")[1]
+                if json_str.startswith("json"):
+                    json_str = json_str[4:]
+            json_str = json_str.strip()
+            
+            action = json.loads(json_str)
+            action_type = action.get("action_type", "hold").lower()
+            stock = action.get("stock", "A").upper()
+            amount = int(action.get("amount", 0))
+            reasoning = action.get("reasoning", "LLM decision")
+            
+            if stock not in ["A", "B"]:
+                stock = "A"
+            
+            price = self.state.stock_a.price if stock == "A" else self.state.stock_b.price
+            
+            if action_type == "buy" and amount > 0:
+                cost = amount * price
+                if cost <= agent.cash:
+                    agent.cash -= cost
+                    if stock == "A":
+                        agent.stock_a_amount += amount
+                    else:
+                        agent.stock_b_amount += amount
+                    
+                    agent.action_history.append({
+                        "day": self.state.current_day,
+                        "session": self.state.current_session,
+                        "action": "BUY",
+                        "stock": stock,
+                        "amount": amount,
+                        "price": price,
+                        "reasoning": f"[LLM] {reasoning}"
+                    })
+                    
+            elif action_type == "sell" and amount > 0:
+                holdings = agent.stock_a_amount if stock == "A" else agent.stock_b_amount
+                amount = min(amount, holdings)  # Can't sell more than held
+                
+                if amount > 0:
+                    if stock == "A":
+                        agent.stock_a_amount -= amount
+                    else:
+                        agent.stock_b_amount -= amount
+                    agent.cash += amount * price
+                    
+                    agent.action_history.append({
+                        "day": self.state.current_day,
+                        "session": self.state.current_session,
+                        "action": "SELL",
+                        "stock": stock,
+                        "amount": amount,
+                        "price": price,
+                        "reasoning": f"[LLM] {reasoning}"
+                    })
+                    
+            # else: hold — no action needed
+            
+        except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
+            log.warning(f"Failed to parse LLM response for agent {agent.id}: {e}")
+            # Fall back to demo behavior for this agent
+            self._simulate_agent_action(agent)
+    
     def _process_end_of_day(self):
         """Process end-of-day activities."""
         
@@ -938,6 +1149,33 @@ class SimulationEngine:
         # Select random agents to post
         active_agents = [a for a in self.state.agents if not a.quit and not a.is_bankrupt]
         posters = self._random.sample(active_agents, min(5, len(active_agents)))
+        
+        if self.state.llm_mode and self._groq_client:
+            # LLM-generated forum messages (only for 2-3 agents to save API calls)
+            llm_posters = posters[:2]
+            for agent in llm_posters:
+                prompt = f"""You are {agent.name}, a {agent.character} trader. Day {self.state.current_day} just ended.
+Your P&L is {agent.pnl_percent:+.1f}%. Market sentiment: {self.state.market_sentiment}.
+Write a short 1-sentence forum post about the market (casual trader talk). No JSON, just the message."""
+                resp = self._call_groq(agent.id, prompt)
+                if resp:
+                    sentiment = "bullish" if agent.pnl_percent > 5 else "bearish" if agent.pnl_percent < -5 else "neutral"
+                    self.state.forum_messages.append(ForumMessage(
+                        day=self.state.current_day,
+                        agent_id=agent.id,
+                        agent_name=agent.name,
+                        message=resp.strip().strip('"'),
+                        sentiment=sentiment
+                    ))
+            # Fill rest with template messages
+            remaining = [a for a in posters if a not in llm_posters]
+            self._generate_template_forum(remaining)
+            return
+        
+        self._generate_template_forum(posters)
+    
+    def _generate_template_forum(self, posters: List[AgentState]):
+        """Generate template-based forum messages."""
         
         message_templates = {
             "bullish": [

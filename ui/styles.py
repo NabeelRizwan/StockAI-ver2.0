@@ -9,224 +9,61 @@
 CSS_VARIABLES = """
 :root {
     /* Backgrounds */
-    --bg-primary: #06060a;
-    --bg-secondary: #0c0c12;
-    --bg-tertiary: #12121a;
-    --bg-card: rgba(22, 22, 32, 0.8);
-    --bg-card-solid: #161620;
-    --bg-card-hover: rgba(30, 30, 44, 0.9);
-    --bg-glass: rgba(255, 255, 255, 0.03);
+    --bg-primary: #000000;
+    --bg-secondary: #0f0f0f;
+    --bg-tertiary: #1a1a1a;
+    --bg-card: #121212;
+    --bg-card-solid: #141414;
+    --bg-card-hover: #1e1e1e;
+    --bg-glass: rgba(255, 255, 255, 0.06);
     
     /* Text */
-    --text-primary: #f8fafc;
-    --text-secondary: #a1a1aa;
-    --text-muted: #71717a;
-    --text-dim: #52525b;
+    --text-primary: #ffffff;
+    --text-secondary: #b4b4b4;
+    --text-muted: #8a8a8a;
+    --text-dim: #666666;
     
     /* Accent Colors */
-    --accent-green: #10b981;
-    --accent-green-dim: rgba(16, 185, 129, 0.15);
-    --accent-red: #ef4444;
-    --accent-red-dim: rgba(239, 68, 68, 0.15);
-    --accent-blue: #3b82f6;
-    --accent-blue-dim: rgba(59, 130, 246, 0.15);
-    --accent-purple: #8b5cf6;
-    --accent-purple-dim: rgba(139, 92, 246, 0.15);
-    --accent-yellow: #f59e0b;
-    --accent-yellow-dim: rgba(245, 158, 11, 0.15);
-    --accent-cyan: #06b6d4;
-    --accent-pink: #ec4899;
+    --accent-green: #26a69a;
+    --accent-green-dim: rgba(38, 166, 154, 0.15);
+    --accent-red: #ef5350;
+    --accent-red-dim: rgba(239, 83, 80, 0.15);
+    --accent-blue: #2962ff;
+    --accent-blue-dim: rgba(41, 98, 255, 0.15);
+    --accent-purple: #7c3aed;
+    --accent-purple-dim: rgba(124, 58, 237, 0.15);
+    --accent-yellow: #ffa726;
+    --accent-yellow-dim: rgba(255, 167, 38, 0.15);
+    --accent-cyan: #26c6da;
+    --accent-pink: #ec407a;
     
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, #10b981 0%, #3b82f6 50%, #8b5cf6 100%);
-    --gradient-green: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    --gradient-blue: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    --gradient-purple: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-    --gradient-warm: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
-    --gradient-dark: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+    --gradient-primary: linear-gradient(135deg, #26a69a 0%, #2962ff 100%);
+    --gradient-green: linear-gradient(135deg, #26a69a 0%, #1f8b7e 100%);
+    --gradient-blue: linear-gradient(135deg, #2962ff 0%, #1e4fc2 100%);
+    --gradient-purple: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+    --gradient-warm: linear-gradient(135deg, #ffa726 0%, #ef5350 100%);
+    --gradient-dark: linear-gradient(180deg, #000000 0%, #0f0f0f 100%);
     
     /* Borders */
-    --border-subtle: rgba(255, 255, 255, 0.06);
-    --border-light: rgba(255, 255, 255, 0.1);
-    --border-medium: rgba(255, 255, 255, 0.15);
+    --border-subtle: rgba(255, 255, 255, 0.1);
+    --border-light: rgba(255, 255, 255, 0.15);
+    --border-medium: rgba(255, 255, 255, 0.22);
     
     /* Shadows */
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
-    --shadow-glow-green: 0 0 40px rgba(16, 185, 129, 0.3);
-    --shadow-glow-blue: 0 0 40px rgba(59, 130, 246, 0.3);
-    --shadow-glow-purple: 0 0 40px rgba(139, 92, 246, 0.3);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 1px rgba(255, 255, 255, 0.05);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 2px rgba(255, 255, 255, 0.08);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 3px rgba(255, 255, 255, 0.1);
+    --shadow-glow-green: 0 0 16px rgba(38, 166, 154, 0.3), 0 0 32px rgba(38, 166, 154, 0.15);
+    --shadow-glow-blue: 0 0 16px rgba(41, 98, 255, 0.3), 0 0 32px rgba(41, 98, 255, 0.15);
+    --shadow-glow-purple: 0 0 16px rgba(124, 58, 237, 0.3), 0 0 32px rgba(124, 58, 237, 0.15);
     
     /* Spacing */
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-xl: 24px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 8px;
+    --radius-xl: 12px;
     --radius-full: 9999px;
-}
-"""
-
-# Chatbot-specific styles
-CHATBOT_STYLES = """
-/* ═══════════════════════════════════════════════════════════════════════════════
-   AI CHATBOT ADVISOR
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.chatbot-container {
-    background: var(--bg-card);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    margin-bottom: 16px;
-}
-
-.chatbot-header {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%);
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--border-subtle);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.chatbot-header-icon {
-    width: 40px;
-    height: 40px;
-    background: var(--gradient-purple);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-}
-
-.chatbot-header-text h3 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
-.chatbot-header-text p {
-    margin: 2px 0 0 0;
-    font-size: 12px;
-    color: var(--text-muted);
-}
-
-.chatbot-messages {
-    max-height: 400px;
-    overflow-y: auto;
-    padding: 16px;
-}
-
-.chat-message {
-    margin-bottom: 16px;
-    display: flex;
-    gap: 12px;
-}
-
-.chat-message.user {
-    flex-direction: row-reverse;
-}
-
-.chat-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    flex-shrink: 0;
-}
-
-.chat-avatar.ai {
-    background: var(--gradient-purple);
-}
-
-.chat-avatar.user {
-    background: var(--gradient-blue);
-}
-
-.chat-bubble {
-    max-width: 80%;
-    padding: 12px 16px;
-    border-radius: var(--radius-md);
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.chat-bubble.ai {
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-subtle);
-}
-
-.chat-bubble.user {
-    background: var(--accent-blue-dim);
-    color: var(--text-primary);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-.chat-input-container {
-    padding: 16px;
-    border-top: 1px solid var(--border-subtle);
-    display: flex;
-    gap: 12px;
-}
-
-.quick-questions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 12px 16px;
-    border-top: 1px solid var(--border-subtle);
-    background: var(--bg-glass);
-}
-
-.quick-question {
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-full);
-    padding: 8px 16px;
-    font-size: 12px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.quick-question:hover {
-    background: var(--bg-card-hover);
-    border-color: var(--accent-purple);
-    color: var(--text-primary);
-}
-
-/* Typing indicator */
-.typing-indicator {
-    display: flex;
-    gap: 4px;
-    padding: 8px 0;
-}
-
-.typing-indicator span {
-    width: 8px;
-    height: 8px;
-    background: var(--accent-purple);
-    border-radius: 50%;
-    animation: typing 1.4s infinite;
-}
-
-.typing-indicator span:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
-.typing-indicator span:nth-child(3) {
-    animation-delay: 0.4s;
-}
-
-@keyframes typing {
-    0%, 100% { opacity: 0.3; transform: translateY(0); }
-    50% { opacity: 1; transform: translateY(-4px); }
 }
 """
 
@@ -948,7 +785,6 @@ def get_all_styles():
     return f"""
 <style>
 {CSS_VARIABLES}
-{CHATBOT_STYLES}
 {STOCK_CARD_STYLES}
 {NEWS_TICKER_STYLES}
 {NOTIFICATION_STYLES}

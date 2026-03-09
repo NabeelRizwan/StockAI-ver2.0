@@ -2,7 +2,12 @@
 import logging
 import backend.app.state as state
 from fastapi import APIRouter, HTTPException, BackgroundTasks
+from pydantic import BaseModel
 from backend.app.models.types import SimulationConfig
+
+
+class ExtendRequest(BaseModel):
+    additional_days: int
 
 router = APIRouter(prefix="/simulation", tags=["simulation"])
 logger = logging.getLogger("api.simulation")
@@ -72,6 +77,16 @@ async def update_config(cfg: SimulationConfig):
         raise HTTPException(400, "Stop simulation before changing config")
     state._build_world(config=cfg.model_dump())
     return {"message": "Configuration updated", "config": cfg.model_dump()}
+
+
+@router.post("/extend")
+async def extend_simulation(req: ExtendRequest):
+    """Add more days to the current simulation without rebuilding world state."""
+    sim = state.simulation
+    if sim.is_running:
+        raise HTTPException(400, "Stop simulation before extending")
+    sim.total_days = sim.day + req.additional_days
+    return {"message": f"Extended to {sim.total_days} days total", "total_days": sim.total_days}
 
 
 @router.get("/snapshots")

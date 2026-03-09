@@ -1778,6 +1778,7 @@ function nav(page) {
   navEl.classList.add('active');
   window.location.hash = page;
 
+  if (page === 'dashboard')      { refreshPriceChart(); }
   if (page === 'analysis')       { loadAnalysis(); }
   if (page === 'agents' && agents.length) { setTimeout(loadRaceChart, 300); }
   if (page === 'agents')         { loadAgents(); loadLoans(); }
@@ -2024,12 +2025,20 @@ async function simStop() {
   if (r) { toast('Simulation stopped', 'var(--yellow)'); pollStatus(); }
 }
 async function simRunDays(n) {
-  // Stop any running sim first, then configure & start
   if (state.is_running) await apiPost('/simulation/stop');
-  const cfg = await apiPost('/simulation/config', { num_days: n });
-  if (!cfg) { toast('Config failed', 'var(--red)'); return; }
+
+  if ((state.day || 0) === 0) {
+    // Fresh start: rebuild world configured for exactly n days
+    const cfg = await apiPost('/simulation/config', { num_days: n });
+    if (!cfg) { toast('Config failed', 'var(--red)'); return; }
+  } else {
+    // Extend: add n more days on top of already-completed days
+    const ext = await apiPost('/simulation/extend', { additional_days: n });
+    if (!ext) { toast('Extend failed', 'var(--red)'); return; }
+  }
+
   const s = await apiPost('/simulation/start');
-  if (s) toast(`Running ${n} days`, 'var(--lime)');
+  if (s) toast(`Running ${n} more days`, 'var(--lime)');
   else toast('Start failed', 'var(--red)');
   pollStatus();
 }
@@ -2043,7 +2052,7 @@ async function simReset() {
     state = { is_running: false, is_paused: false, day: 0, session: 0, total_days: 0, total_trades: 0, active_agents: 0 };
     updateSidebar(); updateMetrics();
     clearChart('priceChart'); clearChart('sectorChart'); clearChart('stockChart');
-    clearChart('biasChart'); clearChart('actionChart');
+    clearChart('biasChart'); clearChart('actionChart'); clearChart('raceChart');
     document.getElementById('trade-feed').innerHTML = '';
     document.getElementById('events-feed').innerHTML = '';
     document.getElementById('forum-feed').innerHTML = '';
@@ -2682,7 +2691,9 @@ async function loadGlobalExplainability() {
 
   const topStocksGlobal = data.top_stocks_global || {};
   const topStkEntry = Object.entries(topStocksGlobal).sort((a, b) => b[1] - a[1])[0];
-  document.getElementById('expl-top-stock').textContent = topStkEntry ? topStkEntry[0] : '—';
+  document.getElementById('expl-top-stock').textContent = topStkEntry
+    ? (allStocks[topStkEntry[0]]?.name || topStkEntry[0])
+    : '—';
 
   // ── Bias distribution chart ──
   const biasEmpty = document.getElementById('biasChart-empty');
@@ -3191,21 +3202,21 @@ init();
 const SECTOR_ORDER = ['Tech','Energy','Finance','Auto','Retail','Entertainment'];
 
 function heatmapColor(pct) {
-  // Neo-brutalism palette: cyan for gains, magenta/pink for losses, dark base
+  // Muted palette: soft teal for gains, soft rose for losses
   const v = Math.max(-10, Math.min(10, pct));
   if (v >= 0) {
-    // 0 → dark charcoal, +10 → bright cyan (#00f0ff)
+    // 0 → dark charcoal, +10 → muted teal (~#1e8c78)
     const t = v / 10;
-    const r = Math.round(18 * (1 - t));
-    const g = Math.round(24 + 216 * t);
-    const b = Math.round(28 + 227 * t);
+    const r = Math.round(18 + 12 * t);
+    const g = Math.round(24 + 116 * t);
+    const b = Math.round(28 + 92 * t);
     return `rgb(${r},${g},${b})`;
   } else {
-    // 0 → dark charcoal, -10 → hot magenta (#ff3399)
+    // 0 → dark charcoal, -10 → muted rose (~#b43246)
     const t = -v / 10;
-    const r = Math.round(28 + 227 * t);
-    const g = Math.round(24 * (1 - t * 0.6));
-    const b = Math.round(28 + 125 * t);
+    const r = Math.round(18 + 162 * t);
+    const g = Math.round(24 - 14 * t);
+    const b = Math.round(28 + 42 * t);
     return `rgb(${r},${g},${b})`;
   }
 }

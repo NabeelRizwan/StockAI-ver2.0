@@ -457,8 +457,10 @@ class SimulationLoop:
         self.is_running = True
         self.is_paused = False
         total_steps = steps or (self.total_days * self.sessions_per_day)
+        # Resume from current day position so extend works correctly
+        start_step = self.day * self.sessions_per_day
 
-        for step_i in range(total_steps):
+        for step_i in range(start_step, total_steps):
             if not self.is_running:
                 break
             while self.is_paused:

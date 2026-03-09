@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>StockAI — AI-Powered Market Simulator</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230d0d0d' rx='6'/%3E%3Crect x='5' y='14' width='2' height='12' fill='%2300c896'/%3E%3Crect x='4' y='16' width='4' height='8' fill='%2300c896' rx='1'/%3E%3Crect x='13' y='8' width='2' height='14' fill='%23e0354b'/%3E%3Crect x='12' y='10' width='4' height='9' fill='%23e0354b' rx='1'/%3E%3Crect x='21' y='10' width='2' height='14' fill='%2300c896'/%3E%3Crect x='20' y='12' width='4' height='8' fill='%2300c896' rx='1'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #080808;
+  --surface: #111111;
+  --border:  #1e1e1e;
+  --lime:    #c8f04a;
+  --cyan:    #00e5cc;
+  --magenta: #e040c8;
+  --red:     #e0354b;
+  --yellow:  #f5c842;
+  --muted:   #555;
+  --text:    #e8e8e8;
+  --mono:    'JetBrains Mono', monospace;
+  --sans:    'Space Grotesk', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* ── GRID NOISE BACKGROUND ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(200,240,74,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200,240,74,.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 40px;
+  background: rgba(8,8,8,.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--lime);
+  text-decoration: none;
+  letter-spacing: -0.5px;
+}
+
+.nav-logo .logo-icon {
+  width: 32px; height: 32px;
+  background: var(--lime);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+
+.nav-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: var(--lime);
+  color: #000;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  border: 2px solid var(--lime);
+  transition: background .15s, color .15s, transform .1s;
+}
+
+.nav-cta:hover {
+  background: transparent;
+  color: var(--lime);
+  transform: translate(-2px,-2px);
+  box-shadow: 4px 4px 0 var(--lime);
+}
+
+/* ── HERO ── */
+.hero {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 120px 24px 80px;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border: 1px solid var(--lime);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--lime);
+  letter-spacing: 2px;
+  margin-bottom: 32px;
+  text-transform: uppercase;
+}
+
+.hero-badge::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--lime);
+  border-radius: 50%;
+  animation: blink 1.2s step-end infinite;
+}
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+.hero-title {
+  font-family: var(--mono);
+  font-size: clamp(48px, 8vw, 96px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -3px;
+  margin-bottom: 8px;
+}
+
+.hero-title .word-stock { color: var(--lime); }
+.hero-title .word-ai    { color: var(--cyan); }
+
+.hero-version {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 24px;
+  letter-spacing: 2px;
+}
+
+.hero-sub {
+  font-size: clamp(16px, 2.5vw, 22px);
+  color: #999;
+  max-width: 600px;
+  line-height: 1.6;
+  margin-bottom: 48px;
+  font-weight: 400;
+}
+
+.hero-sub strong { color: var(--text); font-weight: 600; }
+
+.hero-buttons {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 40px;
+  background: var(--lime);
+  color: #000;
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+  border: 3px solid var(--lime);
+  transition: all .15s;
+}
+
+.btn-primary:hover {
+  background: transparent;
+  color: var(--lime);
+  transform: translate(-3px,-3px);
+  box-shadow: 6px 6px 0 var(--lime);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 40px;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  border: 2px solid var(--border);
+  transition: all .15s;
+}
+
+.btn-secondary:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  transform: translate(-2px,-2px);
+  box-shadow: 4px 4px 0 var(--cyan);
+}
+
+/* ── TICKER STRIP ── */
+.ticker-strip {
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+  padding: 10px 0;
+}
+
+.ticker-inner {
+  display: flex;
+  gap: 48px;
+  animation: scroll-left 25s linear infinite;
+  width: max-content;
+}
+
+@keyframes scroll-left { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+.ticker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.ticker-sym   { color: var(--text); font-weight: 700; }
+.ticker-price { color: #777; }
+.ticker-chg.up   { color: var(--lime); }
+.ticker-chg.down { color: var(--red); }
+
+/* ── FEATURES ── */
+.section {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 96px 24px;
+}
+
+.section-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--cyan);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 700;
+  letter-spacing: -1px;
+  margin-bottom: 16px;
+  line-height: 1.15;
+}
+
+.section-sub {
+  color: #777;
+  font-size: 16px;
+  max-width: 560px;
+  line-height: 1.7;
+  margin-bottom: 56px;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2px;
+  border: 2px solid var(--border);
+}
+
+.feature-card {
+  background: var(--surface);
+  padding: 32px;
+  border: 0;
+  transition: background .2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--accent-color, var(--lime));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .25s;
+}
+
+.feature-card:hover::after { transform: scaleX(1); }
+.feature-card:hover { background: #161616; }
+
+.feature-icon {
+  font-size: 32px;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.feature-name {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-color, var(--lime));
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.feature-desc {
+  font-size: 14px;
+  color: #777;
+  line-height: 1.7;
+}
+
+/* ── STATS ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0;
+  border: 2px solid var(--border);
+  margin: 64px 0;
+}
+
+.stat-card {
+  padding: 40px 32px;
+  text-align: center;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.stat-card:last-child { border-right: none; }
+
+.stat-num {
+  font-family: var(--mono);
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--lime);
+  display: block;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #666;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ── HOW IT WORKS ── */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0;
+  border: 2px solid var(--border);
+}
+
+.step {
+  padding: 40px 32px;
+  border-right: 1px solid var(--border);
+  position: relative;
+}
+
+.step:last-child { border-right: none; }
+
+.step-num {
+  font-family: var(--mono);
+  font-size: 64px;
+  font-weight: 800;
+  color: var(--border);
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.step-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.step-desc {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.7;
+}
+
+/* ── TERMINAL BLOCK ── */
+.terminal {
+  background: #0a0a0a;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--lime);
+  padding: 24px 28px;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 2;
+  margin: 40px 0;
+  position: relative;
+}
+
+.terminal::before {
+  content: '● ● ●';
+  position: absolute;
+  top: 10px; left: 16px;
+  font-size: 9px;
+  color: #333;
+  letter-spacing: 6px;
+}
+
+.terminal code { display: block; padding-top:20px; }
+
+.t-comment { color: #444; }
+.t-key     { color: var(--cyan); }
+.t-val     { color: var(--lime); }
+.t-str     { color: var(--yellow); }
+.t-num     { color: var(--magenta); }
+
+/* ── CTA SECTION ── */
+.cta-section {
+  position: relative;
+  z-index: 1;
+  background: var(--lime);
+  padding: 80px 24px;
+  text-align: center;
+  margin-top: 0;
+}
+
+.cta-section .cta-title {
+  font-family: var(--mono);
+  font-size: clamp(32px, 5vw, 56px);
+  font-weight: 800;
+  color: #000;
+  letter-spacing: -2px;
+  margin-bottom: 16px;
+  line-height: 1.1;
+}
+
+.cta-section .cta-sub {
+  font-size: 18px;
+  color: #333;
+  margin-bottom: 40px;
+}
+
+.btn-dark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 48px;
+  background: #000;
+  color: var(--lime);
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 800;
+  text-decoration: none;
+  border: 3px solid #000;
+  transition: all .15s;
+}
+
+.btn-dark:hover {
+  background: transparent;
+  color: #000;
+  border-color: #000;
+  transform: translate(-3px,-3px);
+  box-shadow: 6px 6px 0 #000;
+}
+
+/* ── FOOTER ── */
+footer {
+  position: relative;
+  z-index: 1;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.footer-logo {
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--lime);
+}
+
+.footer-note {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ── CANDLESTICK PREVIEW ── */
+.preview-box {
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.preview-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+.preview-chart {
+  padding: 24px;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 160px;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 39px, #1a1a1a 39px, #1a1a1a 40px
+  );
+}
+
+.candle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.wick {
+  width: 2px;
+}
+
+.body {
+  width: 8px;
+  border-radius: 1px;
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="/">
+    <div class="logo-icon">📈</div>
+    StockAI
+  </a>
+  <a class="nav-cta" href="/app">Launch App →</a>
+</nav>
+
+<!-- TICKER STRIP -->
+<div class="ticker-strip" style="margin-top:64px">
+  <div class="ticker-inner" id="ticker"></div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">AI-Powered · Real-time · Free</div>
+  <h1 class="hero-title">
+    <span class="word-stock">Stock</span><span class="word-ai">AI</span>
+  </h1>
+  <div class="hero-version">VERSION 2.0</div>
+  <p class="hero-sub">
+    A <strong>fully autonomous stock market simulator</strong> powered by large language models.
+    Watch AI agents trade, react to news, form opinions, and compete — in real time.
+  </p>
+  <div class="hero-buttons">
+    <a class="btn-primary" href="/app">▶ Launch Simulator</a>
+    <a class="btn-secondary" href="#features">Explore Features</a>
+  </div>
+
+  <!-- mini candlestick preview -->
+  <div class="preview-box" style="margin-top:64px;max-width:700px">
+    <div class="preview-header">
+      <div class="preview-dot" style="background:#ff5f56"></div>
+      <div class="preview-dot" style="background:#ffbd2e"></div>
+      <div class="preview-dot" style="background:#27c93f"></div>
+      <span style="margin-left:8px">StockAI — Market Dashboard</span>
+      <span style="margin-left:auto;color:var(--lime)">● LIVE</span>
+    </div>
+    <div class="preview-chart" id="preview-chart"></div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="section" style="padding-top:0;padding-bottom:0">
+  <div class="stats-row">
+    <div class="stat-card">
+      <span class="stat-num">26</span>
+      <span class="stat-label">AI Agents</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-num">30+</span>
+      <span class="stat-label">Stocks</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-num">6</span>
+      <span class="stat-label">Sectors</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-num">∞</span>
+      <span class="stat-label">Possibilities</span>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div class="section-label">What's Inside</div>
+  <h2 class="section-title">Everything a real<br>market needs.</h2>
+  <p class="section-sub">From behavioral finance to circuit breakers — StockAI models the complexity of real financial markets.</p>
+
+  <div class="features-grid">
+    <div class="feature-card" style="--accent-color:var(--lime)">
+      <span class="feature-icon">🤖</span>
+      <div class="feature-name">LLM-Driven Agents</div>
+      <p class="feature-desc">Each agent is powered by Groq's Llama 3.3. They read market events, form opinions, debate in a forum, and trade autonomously.</p>
+    </div>
+    <div class="feature-card" style="--accent-color:var(--cyan)">
+      <span class="feature-icon">📊</span>
+      <div class="feature-name">Live WebSocket Feed</div>
+      <p class="feature-desc">Price ticks, trade executions, and market events stream live via WebSocket. Every session is visible in real time.</p>
+    </div>
+    <div class="feature-card" style="--accent-color:var(--magenta)">
+      <span class="feature-icon">🏦</span>
+      <div class="feature-name">Order Book Engine</div>
+      <p class="feature-desc">A full limit-order matching engine with bid/ask queues, partial fills, and market orders. Real microstructure.</p>
+    </div>
+    <div class="feature-card" style="--accent-color:var(--yellow)">
+      <span class="feature-icon">⚡</span>
+      <div class="feature-name">Circuit Breakers</div>
+      <p class="feature-desc">Stocks that move more than 10% in a session are automatically halted — just like real exchanges.</p>
+    </div>
+    <div class="feature-card" style="--accent-color:var(--lime)">
+      <span class="feature-icon">🔗</span>
+      <div class="feature-name">Sector Correlation</div>
+      <p class="feature-desc">Price moves ripple across sectors based on a real correlation matrix. Tech and Finance move together; Energy stands apart.</p>
+    </div>
+    <div class="feature-card" style="--accent-color:var(--cyan)">
+      <span class="feature-icon">💬</span>
+      <div class="feature-name">Agent Forum</div>
+      <p class="feature-desc">Agents post bullish/bearish opinions each day. Watch the sentiment shift as events unfold and positions change.</p>
+    </div>
+    <div class="feature-card" style="--accent-color:var(--magenta)">
+      <span class="feature-icon">🏆</span>
+      <div class="feature-name">Portfolio Race</div>
+      <p class="feature-desc">A live leaderboard races agent portfolios over time. See who compounds the fastest — and who blows up.</p>
+    </div>
+    <div class="feature-card" style="--accent-color:var(--yellow)">
+      <span class="feature-icon">🔔</span>
+      <div class="feature-name">Price Alerts</div>
+      <p class="feature-desc">Set target prices for any stock. Get instant notifications when agents push prices through your thresholds.</p>
+    </div>
+    <div class="feature-card" style="--accent-color:var(--lime)">
+      <span class="feature-icon">🧠</span>
+      <div class="feature-name">Explainability</div>
+      <p class="feature-desc">Inspect every agent's decision logic, bias distribution, win rate, and maximum drawdown. Full transparency.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section" style="padding-top:0">
+  <div class="section-label">How It Works</div>
+  <h2 class="section-title">A full market in<br>four steps.</h2>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-title">Configure</div>
+      <p class="step-desc">Set the number of days, volatility, speed and event intensity. Choose your agent mix.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-title">Simulate</div>
+      <p class="step-desc">Each day runs 3 trading sessions. Agents receive market events and LLM reasoning kicks in.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-title">Trade</div>
+      <p class="step-desc">Orders flow through the matching engine. Prices update, snapshots are saved, charts refresh live.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <div class="step-title">Analyse</div>
+      <p class="step-desc">Rewind any day's snapshot, compare agent portfolios, inspect the heatmap and financial reports.</p>
+    </div>
+  </div>
+
+  <div class="terminal">
+    <code>
+      <span class="t-comment"># StockAI v2.0 — agent reasoning sample</span><br>
+      <span class="t-key">agent</span>: <span class="t-str">"Warren (Value Investor)"</span><br>
+      <span class="t-key">day</span>: <span class="t-num">7</span> &nbsp;&nbsp;<span class="t-key">session</span>: <span class="t-num">2</span><br>
+      <span class="t-key">event</span>: <span class="t-str">"Interest Rate Decision — HIGH severity"</span><br>
+      <span class="t-key">reasoning</span>: <span class="t-str">"Rate hike signals contraction. Rotating to defensive stocks."</span><br>
+      <span class="t-key">action</span>: <span class="t-val">SELL</span> &nbsp;<span class="t-key">stock</span>: <span class="t-str">"A"</span> &nbsp;<span class="t-key">qty</span>: <span class="t-num">42</span> &nbsp;<span class="t-key">price</span>: <span class="t-str">$148.30</span><br>
+      <span class="t-key">portfolio_value</span>: <span class="t-val">$112,840</span> &nbsp;<span class="t-key">gain</span>: <span class="t-val">+12.8%</span>
+    </code>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-section">
+  <div class="cta-title">Ready to watch<br>AI trade?</div>
+  <p class="cta-sub">No sign-up. No credit card. Just launch and run.</p>
+  <a class="btn-dark" href="/app">▶ Open the Simulator</a>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">StockAI v2.0</div>
+  <div class="footer-note">Built with FastAPI · Groq Llama 3.3 · Chart.js · Vanilla JS</div>
+  <div class="footer-note" style="color:#333">© 2026</div>
+</footer>
+
+<script>
+// ── Fake ticker data ──
+const TICKERS = [
+  {sym:'AAPL', p:182.50, chg:+1.4},{sym:'MSFT', p:412.30, chg:-0.6},
+  {sym:'NVDA', p:875.20, chg:+3.1},{sym:'TSLA', p:248.90, chg:-2.3},
+  {sym:'AMZN', p:198.40, chg:+0.9},{sym:'GOOG', p:171.30, chg:+0.4},
+  {sym:'META', p:524.10, chg:+1.8},{sym:'BRK',  p:390.00, chg:-0.2},
+  {sym:'JPM',  p:207.60, chg:+0.7},{sym:'V',    p:275.80, chg:+0.3},
+  {sym:'XOM',  p:118.40, chg:-1.1},{sym:'WMT',  p:172.20, chg:+0.5},
+];
+
+function buildTicker() {
+  const el = document.getElementById('ticker');
+  const doubled = [...TICKERS, ...TICKERS]; // double for seamless loop
+  el.innerHTML = doubled.map(t =>
+    `<div class="ticker-item">
+      <span class="ticker-sym">${t.sym}</span>
+      <span class="ticker-price">$${t.p.toFixed(2)}</span>
+      <span class="ticker-chg ${t.chg>=0?'up':'down'}">${t.chg>=0?'+':''}${t.chg}%</span>
+    </div>`
+  ).join('');
+}
+
+// ── Mini candlestick chart ──
+function buildPreviewChart() {
+  const prices = [100,104,102,108,105,112,109,115,111,118,114,120,116,122,119,125,121,128,124,130];
+  const chart = document.getElementById('preview-chart');
+  const maxP = Math.max(...prices), minP = Math.min(...prices);
+  const range = maxP - minP || 1;
+  const h = 120;
+  chart.innerHTML = prices.map((p, i) => {
+    const prev = prices[i-1] ?? p;
+    const up = p >= prev;
+    const bodyH = Math.max(4, Math.abs(p - prev) / range * h);
+    const bottom = (p - minP) / range * h;
+    const wickH = 8;
+    return `<div class="candle" style="height:${h}px">
+      <div class="wick" style="height:${wickH}px;background:${up?'#00c896':'#e0354b'};margin-bottom:0"></div>
+      <div class="body"  style="height:${bodyH}px;background:${up?'#00c896':'#e0354b'}"></div>
+    </div>`;
+  }).join('');
+}
+
+buildTicker();
+buildPreviewChart();
+</script>
+</body>
+</html>

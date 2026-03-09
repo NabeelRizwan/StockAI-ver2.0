@@ -554,3 +554,13 @@ class SimulationLoop:
 
         self.is_running = False
         logger.info("Simulation complete!")
+        # Notify all connected clients that this batch is done
+        if self.ws_broadcast:
+            try:
+                await self.ws_broadcast({
+                    "type": "complete",
+                    "day": self.day,
+                    "total_days": self.total_days,
+                })
+            except Exception:
+                pass

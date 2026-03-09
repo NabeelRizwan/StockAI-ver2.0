@@ -2025,27 +2025,21 @@ async function simStop() {
   if (r) { toast('Simulation stopped', 'var(--yellow)'); pollStatus(); }
 }
 async function simRunDays(n) {
-  // Always stop first (don't rely on stale frontend state), then wait for loop to exit
+  // Stop any running simulation first
   await apiPost('/simulation/stop');
-  await new Promise(r => setTimeout(r, 600));
-
-  // Always fetch authoritative day count from backend to avoid stale frontend state
-  const live = await apiFetch('/simulation/status');
-  const currentDay = live ? live.day : (state.day || 0);
-  if (live) handleStatus(live); // sync frontend state
-
-  if (currentDay === 0) {
-    // Fresh world: configure for exactly n days
-    const cfg = await apiPost('/simulation/config', { num_days: n });
-    if (!cfg) { toast('Config failed', 'var(--red)'); return; }
-  } else {
-    // Extend: add n days on top of already-completed days
-    const ext = await apiPost('/simulation/extend', { additional_days: n });
-    if (!ext) { toast('Extend failed', 'var(--red)'); return; }
-  }
-
+  // Configure a fresh world with exactly n days
+  const cfg = await apiPost('/simulation/config', { num_days: n });
+  if (!cfg) { toast('Config failed', 'var(--red)'); return; }
+  // Reset frontend state
+  stockHistory = {}; allStocks = {}; agents = []; halted = [];
+  state = { is_running: false, is_paused: false, day: 0, session: 0, total_days: n, total_trades: 0, active_agents: 0 };
+  updateSidebar(); updateMetrics();
+  clearChart('priceChart'); clearChart('sectorChart'); clearChart('stockChart');
+  clearChart('biasChart'); clearChart('actionChart'); clearChart('raceChart');
+  document.getElementById('trade-feed').innerHTML = '';
+  document.getElementById('events-feed').innerHTML = '';
   const s = await apiPost('/simulation/start');
-  if (s) toast(`▶ Running ${n} more day${n > 1 ? 's' : ''} (→ day ${currentDay + n})`, 'var(--lime)');
+  if (s) toast(`▶ Running ${n} day${n > 1 ? 's' : ''} from scratch`, 'var(--lime)');
   else toast('Start failed', 'var(--red)');
   pollStatus();
 }

@@ -1043,7 +1043,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
   <!-- SIDEBAR -->
   <aside id="sidebar">
     <div class="sidebar-logo">
-      <h1>STOCK<span style="color:var(--magenta)">AI</span></h1>
+      <h1><a href="/" style="text-decoration:none;color:inherit">STOCK<span style="color:var(--magenta)">AI</span></a></h1>
       <span>v2.0 — simulator</span>
     </div>
 
@@ -2025,7 +2025,9 @@ async function simStop() {
   if (r) { toast('Simulation stopped', 'var(--yellow)'); pollStatus(); }
 }
 async function simRunDays(n) {
-  if (state.is_running) await apiPost('/simulation/stop');
+  // Always stop first (don't rely on stale frontend state), then wait for loop to exit
+  await apiPost('/simulation/stop');
+  await new Promise(r => setTimeout(r, 600));
 
   // Always fetch authoritative day count from backend to avoid stale frontend state
   const live = await apiFetch('/simulation/status');
@@ -3094,7 +3096,11 @@ async function sendChat() {
   const ctx = buildChatContext();
   const r = await apiPost('/chat', { message: msg + ' ' + ctx });
   if (r) {
-    appendMsg('bot', r.response, r.suggested_followup);
+    // suggested_followup may be a string or array — normalise to array
+    const followups = Array.isArray(r.suggested_followup)
+      ? r.suggested_followup
+      : (r.suggested_followup ? [r.suggested_followup] : []);
+    appendMsg('bot', r.response, followups);
   } else {
     appendMsg('bot', 'Sorry, I could not reach the assistant right now.');
   }

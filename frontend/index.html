@@ -1849,7 +1849,8 @@ function connectWS() {
   if (lbl) lbl.textContent = 'Connecting…';
 
   try {
-    ws = new WebSocket(`ws://${location.host}/ws`);
+    const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${wsProto}//${location.host}/ws`);
   } catch (e) {
     console.warn('WebSocket not available, using polling', e);
     wsConnected = false; setWsDot(false, false); startPoll();

@@ -37,16 +37,17 @@ app.include_router(data.router)
 app.include_router(ws.router)
 
 
-# ── Root health check ──
-@app.get("/")
-async def root():
-    return {"status": "StockAI v2.0 Online", "time": str(datetime.now())}
-
-
 # ── Serve Frontend ──
 _FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
 
 
+@app.get("/", response_class=FileResponse)
 @app.get("/app", response_class=FileResponse)
 async def serve_frontend():
     return FileResponse(_FRONTEND_DIR / "index.html", media_type="text/html")
+
+
+# ── Health check ──
+@app.get("/health")
+async def health():
+    return {"status": "StockAI v2.0 Online", "time": str(datetime.now())}

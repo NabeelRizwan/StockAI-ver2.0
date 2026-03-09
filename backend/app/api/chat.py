@@ -1,12 +1,37 @@
 """Chat endpoint — Gemini (google.genai) with Groq fallback."""
+import asyncio
 import logging
 from fastapi import APIRouter
 import backend.app.state as state
 from backend.app.models.types import ChatRequest
 from backend.app.core.config import settings
 
+# Detect library availability at import time so errors surface in startup logs
+try:
+    from google import genai as _genai
+    _GEMINI_LIB_OK = True
+except Exception:
+    _genai = None  # type: ignore
+    _GEMINI_LIB_OK = False
+
+try:
+    from groq import Groq as _Groq
+    _GROQ_LIB_OK = True
+except Exception:
+    _Groq = None  # type: ignore
+    _GROQ_LIB_OK = False
+
 router = APIRouter(prefix="/chat", tags=["chat"])
 logger = logging.getLogger("api.chat")
+
+# Log provider status once at module load (visible in Render logs)
+_gemini_configured = bool(settings.GEMINI_API_KEY) and _GEMINI_LIB_OK
+_groq_configured = bool(settings.GROQ_API_KEY) and _GROQ_LIB_OK
+logger.info(
+    "Chat providers: gemini=%s (lib=%s, key=%s) | groq=%s (lib=%s, key=%s)",
+    _gemini_configured, _GEMINI_LIB_OK, bool(settings.GEMINI_API_KEY),
+    _groq_configured, _GROQ_LIB_OK, bool(settings.GROQ_API_KEY),
+)
 
 _SYSTEM_PROMPT = (
     "You are StockAI's market advisor — an expert AI assistant embedded in a simulated "
@@ -46,8 +71,9 @@ def _strip_frontend_context(msg: str) -> str:
 
 
 async def _call_gemini(user_text: str) -> str:
-    from google import genai
-    client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    if not _GEMINI_LIB_OK or not _genai:
+        raise RuntimeError("google-genai library not available")
+    client = _genai.Client(api_key=settings.GEMINI_API_KEY)
 
     # Build full conversation as a flat prompt (genai SDK stateless approach)
     history_text = ""
@@ -58,26 +84,34 @@ async def _call_gemini(user_text: str) -> str:
     ctx = _build_context_snippet()
     full_prompt = f"{_SYSTEM_PROMPT}\n\n{ctx}\n\n{history_text}User: {user_text}\nAssistant:"
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=full_prompt,
-    )
-    return (response.text or "").strip()
+    def _sync_gemini():
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=full_prompt,
+        )
+        return (response.text or "").strip()
+
+    return await asyncio.wait_for(asyncio.to_thread(_sync_gemini), timeout=20.0)
 
 
 async def _call_groq(user_text: str) -> str:
-    from groq import Groq
-    client = Groq(api_key=settings.GROQ_API_KEY)
+    if not _GROQ_LIB_OK or not _Groq:
+        raise RuntimeError("groq library not available")
+    client = _Groq(api_key=settings.GROQ_API_KEY)
     ctx = _build_context_snippet()
     full_user = f"{ctx}\n\nUSER: {user_text}"
     msgs = [{"role": "system", "content": _SYSTEM_PROMPT}] + _history[-16:] + [{"role": "user", "content": full_user}]
-    resp = client.chat.completions.create(
-        model=settings.DEFAULT_MODEL_NAME or "llama-3.3-70b-versatile",
-        messages=msgs,
-        temperature=0.7,
-        max_tokens=400,
-    )
-    return (resp.choices[0].message.content or "").strip()
+
+    def _sync_groq():
+        resp = client.chat.completions.create(
+            model=settings.DEFAULT_MODEL_NAME or "llama-3.3-70b-versatile",
+            messages=msgs,
+            temperature=0.7,
+            max_tokens=400,
+        )
+        return (resp.choices[0].message.content or "").strip()
+
+    return await asyncio.wait_for(asyncio.to_thread(_sync_groq), timeout=20.0)
 
 
 @router.post("")
@@ -92,18 +126,25 @@ async def chat(req: ChatRequest):
         try:
             answer = await _call_gemini(user_text)
         except Exception as e:
-            logger.warning(f"Gemini failed, trying Groq fallback: {e}")
+            logger.warning(f"Gemini failed ({type(e).__name__}: {e}), trying Groq fallback")
 
     # Fallback to Groq
     if not answer and settings.GROQ_API_KEY:
         try:
             answer = await _call_groq(user_text)
         except Exception as e:
-            logger.error(f"Groq chat error: {e}")
+            logger.error(f"Groq chat error ({type(e).__name__}: {e})")
+    elif not answer and not settings.GROQ_API_KEY:
+        logger.error("Chat: no GROQ_API_KEY configured")
 
     if not answer:
+        if not _gemini_configured and not _groq_configured:
+            msg = ("Chat is not configured — no LLM API keys found. "
+                   "Set GROQ_API_KEY or GEMINI_API_KEY in your Render environment variables.")
+        else:
+            msg = "Chat is temporarily unavailable. Please try again in a moment."
         return {
-            "response": "Chat is temporarily unavailable. Please try again in a moment.",
+            "response": msg,
             "confidence": "low",
             "suggested_followup": None,
         }

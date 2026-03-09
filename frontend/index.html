@@ -2014,33 +2014,16 @@ function updateMetrics() {
    SIMULATION CONTROLS
 ═══════════════════════════════════════════ */
 async function simStart() {
-  // If paused, resume
+  // If paused, resume via backend (pause state is reliable)
   if (state.is_paused) {
     const r = await apiPost('/simulation/start');
     if (r) { toast('Resumed', 'var(--lime)'); pollStatus(); }
     return;
   }
-  // If already running, no-op
-  if (state.is_running) {
-    toast('Simulation already running');
-    return;
-  }
-  // Check authoritative state from backend
-  const live = await apiFetch('/simulation/status');
-  if (live) handleStatus(live);
-  const currentDay = live ? live.day : state.day;
-  if (currentDay >= configuredDays) {
-    toast(`✓ All ${configuredDays} days complete — reset to run again`, 'var(--cyan)');
-    return;
-  }
-  // Run all remaining days to the configured ceiling
-  const remaining = configuredDays - currentDay;
-  const ext = await apiPost('/simulation/extend', { additional_days: remaining });
-  if (!ext) { toast('Extend failed', 'var(--red)'); return; }
-  const s = await apiPost('/simulation/start');
-  if (s) toast(`▶ Day ${currentDay + 1}–${configuredDays} of ${configuredDays}`, 'var(--lime)');
-  else toast('Start failed', 'var(--red)');
-  pollStatus();
+  // Always delegate to simRunDays — it fetches authoritative backend state,
+  // stops any in-progress run, extends by 1, and starts.
+  // Never block on stale client-side is_running (WS may lag on Render).
+  await simRunDays(1);
 }
 async function simPause() {
   const r = await apiPost('/simulation/pause');
@@ -2051,18 +2034,27 @@ async function simStop() {
   if (r) { toast('Simulation stopped', 'var(--yellow)'); pollStatus(); }
 }
 async function simRunDays(n) {
-  if (state.is_running) await apiPost('/simulation/stop');
-
-  // Get authoritative current position from backend
+  // Always get authoritative state from backend FIRST
   const live = await apiFetch('/simulation/status');
   if (live) handleStatus(live);
   const currentDay = live ? live.day : state.day;
 
-  // Tell the backend to run exactly n more days from current position
-  const ext = await apiPost('/simulation/extend', { additional_days: n });
+  // Stop any running simulation (check both client and server state)
+  if ((live && live.is_running) || state.is_running) {
+    await apiPost('/simulation/stop');
+  }
+
+  if (currentDay >= configuredDays) {
+    toast(`✓ All ${configuredDays} days complete — reset to run again`, 'var(--cyan)');
+    return;
+  }
+
+  // Clamp to the configured ceiling so display never exceeds it
+  const daysToRun = Math.min(n, configuredDays - currentDay);
+  const ext = await apiPost('/simulation/extend', { additional_days: daysToRun });
   if (!ext) { toast('Extend failed', 'var(--red)'); return; }
 
-  const targetDay = currentDay + n;
+  const targetDay = currentDay + daysToRun;
   const s = await apiPost('/simulation/start');
   if (s) toast(`▶ Day ${currentDay + 1}–${targetDay} of ${configuredDays}`, 'var(--lime)');
   else toast('Start failed', 'var(--red)');

@@ -2,12 +2,12 @@
 import logging
 import backend.app.state as state
 from fastapi import APIRouter, HTTPException, BackgroundTasks
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from backend.app.models.types import SimulationConfig
 
 
 class ExtendRequest(BaseModel):
-    additional_days: int
+    additional_days: int = Field(..., gt=0, description="Must be at least 1")
 
 router = APIRouter(prefix="/simulation", tags=["simulation"])
 logger = logging.getLogger("api.simulation")

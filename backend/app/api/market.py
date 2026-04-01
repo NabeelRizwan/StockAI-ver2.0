@@ -2,6 +2,7 @@
 from fastapi import APIRouter, HTTPException
 import backend.app.state as state
 from backend.app.state import STOCKS
+from backend.app.core.analytics import compute_market_analytics
 
 router = APIRouter(prefix="/market", tags=["market"])
 
@@ -44,6 +45,12 @@ async def get_price_history(symbol: str):
     symbol = symbol.upper()
     history = state.simulation.price_history.get(symbol, [])
     return {"symbol": symbol, "history": history}
+
+
+@router.get("/analytics")
+async def get_market_analytics():
+    prices = {s: (state.market_books[s].last_price or STOCKS[s].initial_price) for s in STOCKS}
+    return compute_market_analytics(state.simulation, prices, STOCKS)
 
 
 @router.get("/{symbol}")

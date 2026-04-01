@@ -65,6 +65,13 @@ class TestMarket:
         assert r.status_code == 200
         assert "history" in r.json()
 
+    def test_market_analytics_shape(self):
+        r = client.get("/market/analytics")
+        assert r.status_code == 200
+        data = r.json()
+        for key in ("regime", "benchmark", "breadth", "sectors", "realized_vol_pct", "turnover"):
+            assert key in data, f"missing key: {key}"
+
 
 # â”€â”€â”€ Simulation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -75,6 +82,8 @@ class TestSimulation:
         data = r.json()
         for key in ("is_running", "is_paused", "day", "total_days", "total_trades", "active_agents"):
             assert key in data, f"missing key: {key}"
+        for key in ("market_analytics", "benchmark", "breadth", "regime", "realized_vol_pct", "turnover"):
+            assert key in data, f"missing analytics key: {key}"
 
     def test_config_valid(self):
         r = client.post("/simulation/config", json={"num_agents": 6, "num_days": 5})
@@ -132,6 +141,10 @@ class TestAgents:
         data = r.json()
         for key in ("sharpe_ratio", "max_drawdown", "win_rate", "total_trades"):
             assert key in data
+        for key in ("sortino_ratio", "beta", "volatility", "concentration_hhi", "cash_ratio", "debt_ratio", "attribution"):
+            assert key in data
+        for key in ("sector_pnl", "trading_pnl", "mark_to_market_pnl", "best_contributor", "worst_contributor"):
+            assert key in data["attribution"]
 
     def test_agent_decisions(self):
         agents = client.get("/agents").json()
@@ -189,6 +202,8 @@ class TestData:
         data = r.json()
         for key in ("config", "stocks", "agents", "trades", "events", "price_history"):
             assert key in data, f"missing export key: {key}"
+        for key in ("benchmark_history", "regime_history", "market_analytics", "agent_risk_snapshots"):
+            assert key in data, f"missing enhanced export key: {key}"
 
 
 # â”€â”€â”€ Explainability â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -200,4 +215,6 @@ class TestExplainability:
         data = r.json()
         for key in ("bias_counts", "action_distribution", "per_agent"):
             assert key in data, f"missing key in explainability: {key}"
+        for key in ("avg_conviction", "thesis_drift_total", "decision_consistency_avg"):
+            assert key in data, f"missing enhanced explainability key: {key}"
 

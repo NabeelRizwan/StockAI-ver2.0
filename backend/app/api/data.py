@@ -1,11 +1,11 @@
 """Data endpoints — export, loans, events, forum, event injection."""
 import uuid
-import json
 import logging
 from fastapi import APIRouter
 import backend.app.state as state
 from backend.app.state import STOCKS
 from backend.app.models.types import MarketEvent, EventInjection
+from backend.app.core.analytics import compute_agent_metrics, compute_market_analytics
 
 router = APIRouter(prefix="/data", tags=["data"])
 logger = logging.getLogger("api.data")
@@ -15,15 +15,20 @@ logger = logging.getLogger("api.data")
 async def export_data():
     """Full simulation data export as JSON blob."""
     prices = {s: (b.last_price or 100.0) for s, b in state.market_books.items()}
+    market_analytics = compute_market_analytics(state.simulation, prices, STOCKS)
     return {
         "config": {
             "num_agents": len(state.agents),
             "total_days": state.simulation.total_days,
             "volatility": state.simulation.volatility,
             "use_llm": state.simulation.use_llm,
+            "regime_sensitivity": state.simulation.regime_sensitivity,
+            "benchmark_mode": state.simulation.benchmark_mode,
+            "analytics_detail": state.simulation.analytics_detail,
         },
         "stocks": {s: {"name": m.name, "sector": m.sector, "price": prices[s]} for s, m in STOCKS.items()},
         "agents": [a.get_snapshot(prices) for a in state.agents],
+        "agent_risk_snapshots": [compute_agent_metrics(a, state.simulation, prices, STOCKS) for a in state.agents],
         "trades": [
             {
                 "trade_id": t.trade_id, "stock": t.stock_symbol,
@@ -45,6 +50,11 @@ async def export_data():
         "price_history": {
             sym: hist for sym, hist in state.simulation.price_history.items()
         },
+        "benchmark_history": state.simulation.benchmark_history,
+        "regime_history": state.simulation.regime_history,
+        "sector_index_history": state.simulation.sector_index_history,
+        "market_analytics": market_analytics,
+        "market_metrics_history": state.simulation.market_metrics_history,
         "loans": [
             {
                 "id": l.id, "agent_id": l.agent_id, "amount": l.amount,

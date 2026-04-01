@@ -46,6 +46,9 @@ class PromptFactory:
                             agent_profile: Dict[str, Any],
                             available_stocks: List[str]) -> str:
         lines = [f"Market Status (Day {market_state.get('day', 1)}, Time {market_state.get('time', '09:30')}):"]
+        lines.append(f"  Market Regime: {market_state.get('regime', 'neutral')}")
+        lines.append(f"  Benchmark Return: {market_state.get('benchmark_return_pct', 0):.2f}%")
+        lines.append(f"  Breadth Ratio: {market_state.get('breadth_ratio', 0):.2f}")
         for sym in available_stocks:
             price = market_state["prices"].get(sym, 0)
             trend = market_state.get("trends", {}).get(sym, "Neutral")
@@ -61,6 +64,7 @@ class PromptFactory:
                 holdings_parts.append(f"{qty} {sym}")
         lines.append(f"  Holdings: {', '.join(holdings_parts) if holdings_parts else 'None'}")
         lines.append(f"  PnL: ${agent_profile.get('pnl', 0):.2f}")
+        lines.append(f"  Debt: ${agent_profile.get('total_debt', 0):.2f}")
 
         # Financial report section (if present)
         report = market_state.get("financial_report")
@@ -88,7 +92,13 @@ class PromptFactory:
             f'  "stock": {stock_choices},\n'
             '  "quantity": <integer>,\n'
             '  "price": <float>,\n'
-            '  "reasoning": "<short explanation>"\n'
+            '  "reasoning": "<short explanation>",\n'
+            '  "thesis": "<one sentence thesis>",\n'
+            '  "catalyst": "<near-term catalyst>",\n'
+            '  "risk": "<main risk>",\n'
+            '  "horizon_days": <integer>,\n'
+            '  "conviction": <integer 1-100>,\n'
+            '  "exposure_impact": "increase" | "reduce" | "maintain"\n'
             "}"
         )
 

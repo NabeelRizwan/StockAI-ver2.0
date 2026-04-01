@@ -7,6 +7,7 @@ import backend.app.state as state
 from backend.app.state import STOCKS, ALL_SYMBOLS
 from backend.app.agents.behavioral_agent import BehavioralAgent, RuleBasedAgent, AGENT_PERSONAS
 from backend.app.models.types import CustomAgentRequest
+from backend.app.core.analytics import compute_agent_metrics
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 logger = logging.getLogger("api.agents")
@@ -28,9 +29,10 @@ async def get_decisions(agent_id: str):
 
 @router.get("/{agent_id}/analytics")
 async def get_analytics(agent_id: str):
+    prices = {s: (b.last_price or STOCKS[s].initial_price) for s, b in state.market_books.items()}
     for a in state.agents:
         if str(a.id) == agent_id:
-            return a.get_analytics()
+            return compute_agent_metrics(a, state.simulation, prices, STOCKS)
     raise HTTPException(404, "Agent not found")
 
 
@@ -73,10 +75,15 @@ async def get_explainability():
     action_counts = {"buy": 0, "sell": 0, "hold": 0}
     top_stocks_global: dict = {}
     per_agent = []
+    conviction_total = 0
+    conviction_count = 0
+    thesis_drift_total = 0
+    consistency_total = 0
 
     for a in state.agents:
         agent_action_counts = {"buy": 0, "sell": 0, "hold": 0}
         agent_top_stocks: dict = {}
+        active_convictions = []
 
         for d in a.decision_log:
             act = d.get("action", "hold")
@@ -88,17 +95,30 @@ async def get_explainability():
             if stock:
                 top_stocks_global[stock] = top_stocks_global.get(stock, 0) + 1
                 agent_top_stocks[stock] = agent_top_stocks.get(stock, 0) + 1
+            memo = d.get("memo", {})
+            if memo.get("conviction") is not None:
+                conviction = float(memo.get("conviction", 0))
+                conviction_total += conviction
+                conviction_count += 1
+                active_convictions.append(conviction)
 
+        thesis_drift_total += getattr(a, "_strategy_drift_count", 0)
+        consistency_total += getattr(a, "_consistency_score", 100.0)
         per_agent.append({
             "id": str(a.id),
             "name": a.persona.get("name", f"Agent {a.id}"),
             "type": a.persona.get("type", "Balanced"),
             "kind": a.agent_kind,
+            "strategy_style": a.persona.get("strategy_style", "balanced"),
             "bias_profile": a.persona.get("bias_profile", {}),
             "risk_tolerance": a.persona.get("risk_tolerance", "Medium"),
             "decisions": len(a.decision_log),
             "action_counts": agent_action_counts,
             "top_stocks": dict(sorted(agent_top_stocks.items(), key=lambda x: -x[1])[:5]),
+            "avg_conviction": round(sum(active_convictions) / len(active_convictions), 1) if active_convictions else 0.0,
+            "thesis_drift_count": getattr(a, "_strategy_drift_count", 0),
+            "thesis_reversal_count": getattr(a, "_thesis_reversal_count", 0),
+            "consistency_score": round(getattr(a, "_consistency_score", 100.0), 1),
         })
 
     top_stocks_sorted = dict(sorted(top_stocks_global.items(), key=lambda x: -x[1])[:10])
@@ -111,4 +131,7 @@ async def get_explainability():
         "per_agent": per_agent,
         "top_stocks_global": top_stocks_sorted,
         "most_active_agent": most_active["name"] if most_active and most_active["decisions"] > 0 else None,
+        "avg_conviction": round(conviction_total / conviction_count, 1) if conviction_count else 0.0,
+        "thesis_drift_total": thesis_drift_total,
+        "decision_consistency_avg": round(consistency_total / len(per_agent), 1) if per_agent else 0.0,
     }

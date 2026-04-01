@@ -1295,6 +1295,39 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
           </div>
         </div>
 
+        <div class="grid-6" style="margin-bottom:16px">
+          <div class="card cyan">
+            <div class="card-title">Regime</div>
+            <div class="metric-val" id="m-regime" style="font-size:18px">—</div>
+            <div class="metric-sub" id="m-regime-headline">—</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Benchmark</div>
+            <div class="metric-val" id="m-benchmark">—</div>
+            <div class="metric-sub" id="m-benchmark-ret">vs base 100</div>
+          </div>
+          <div class="card magenta">
+            <div class="card-title">Breadth</div>
+            <div class="metric-val" id="m-breadth">—</div>
+            <div class="metric-sub" id="m-breadth-sub">advancers / decliners</div>
+          </div>
+          <div class="card yellow">
+            <div class="card-title">Realized Vol</div>
+            <div class="metric-val" id="m-realized-vol">—</div>
+            <div class="metric-sub" id="m-session-risk">session risk</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Drawdown</div>
+            <div class="metric-val" id="m-drawdown">—</div>
+            <div class="metric-sub">benchmark peak-to-trough</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Turnover</div>
+            <div class="metric-val" id="m-turnover">—</div>
+            <div class="metric-sub" id="m-sentiment">market sentiment</div>
+          </div>
+        </div>
+
         <!-- Halted Stocks Banner -->
         <div id="halted-banner" style="display:none;margin-bottom:12px"></div>
 
@@ -1361,6 +1394,12 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
       <div class="page-content">
 
         <div class="grid-2" style="margin-bottom:16px">
+          <div class="card yellow">
+            <div class="card-title">Benchmark Monitor</div>
+            <div class="chart-wrap" style="height:200px">
+              <canvas id="benchmarkChart"></canvas>
+            </div>
+          </div>
           <div class="card">
             <div class="card-title">Sector Performance</div>
             <div class="chart-wrap" style="height:200px">
@@ -1372,6 +1411,24 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
             <div class="chart-wrap" style="height:200px">
               <canvas id="stockChart"></canvas>
             </div>
+            <div id="stock-chart-caption" class="empty" style="padding-top:10px;font-size:11px;line-height:1.6">
+              Select a stock to view its recorded session-by-session price history.
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-3" style="margin-bottom:16px">
+          <div class="card cyan">
+            <div class="card-title">Scenario Panel</div>
+            <div id="scenario-panel" style="font-family:var(--mono);font-size:12px;line-height:1.8;color:var(--white)">Waiting for market analytics…</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Sector Leadership</div>
+            <div id="sector-leadership" style="font-family:var(--mono);font-size:12px;line-height:1.8;color:var(--white)">Waiting for market analytics…</div>
+          </div>
+          <div class="card magenta">
+            <div class="card-title">Risk Decomposition</div>
+            <div id="risk-decomposition" style="font-family:var(--mono);font-size:12px;line-height:1.8;color:var(--white)">Waiting for market analytics…</div>
           </div>
         </div>
 
@@ -1485,7 +1542,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
                 <tr>
                   <th style="width:20px"></th>
                   <th>#</th><th>Name</th><th>Type</th><th>Kind</th>
-                  <th>Total Value</th><th>PnL</th><th>PnL%</th>
+                  <th>Total Value</th><th>PnL</th><th>PnL%</th><th>Sharpe</th><th>Sortino</th><th>Beta</th><th>Consistency</th>
                   <th>Trades</th><th>Cash</th><th>Debt</th><th>Status</th>
                 </tr>
               </thead>
@@ -1517,6 +1574,10 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
                 <tbody id="holdings-tbody"></tbody>
               </table>
             </div>
+          </div>
+          <div style="margin-top:14px">
+            <div class="card-title" style="margin-bottom:8px">Attribution Summary</div>
+            <div id="detail-attribution" class="grid-2" style="gap:10px"></div>
           </div>
         </div>
 
@@ -1576,6 +1637,21 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
           <div class="card" style="padding:12px">
             <div class="card-title" style="margin-bottom:4px;font-size:10px">TOP TRADED STOCK</div>
             <div style="font-family:var(--mono);font-size:18px;font-weight:800;color:var(--yellow)" id="expl-top-stock">—</div>
+          </div>
+        </div>
+
+        <div class="grid-3" style="margin-bottom:14px">
+          <div class="card cyan" style="padding:12px">
+            <div class="card-title" style="margin-bottom:4px;font-size:10px">AVG CONVICTION</div>
+            <div style="font-family:var(--mono);font-size:24px;font-weight:800;color:var(--cyan)" id="expl-avg-conviction">—</div>
+          </div>
+          <div class="card magenta" style="padding:12px">
+            <div class="card-title" style="margin-bottom:4px;font-size:10px">THESIS DRIFT</div>
+            <div style="font-family:var(--mono);font-size:24px;font-weight:800;color:var(--magenta)" id="expl-thesis-drift">—</div>
+          </div>
+          <div class="card yellow" style="padding:12px">
+            <div class="card-title" style="margin-bottom:4px;font-size:10px">CONSISTENCY AVG</div>
+            <div style="font-family:var(--mono);font-size:24px;font-weight:800;color:var(--yellow)" id="expl-consistency-avg">—</div>
           </div>
         </div>
 
@@ -1690,10 +1766,32 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
             <div class="form-row">
               <label>Volatility Mode</label>
               <select id="cfg-vol">
-                <option value="low">Low</option>
-                <option value="normal" selected>Normal</option>
-                <option value="high">High</option>
-                <option value="chaos">Chaos</option>
+                <option value="Low">Low</option>
+                <option value="Medium" selected>Normal</option>
+                <option value="High">High</option>
+                <option value="Extreme">Chaos</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>Regime Sensitivity</label>
+              <select id="cfg-regime-sensitivity">
+                <option value="0.75">Defensive</option>
+                <option value="1" selected>Balanced</option>
+                <option value="1.5">Expressive</option>
+                <option value="2">High Conviction</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>Benchmark Mode</label>
+              <select id="cfg-benchmark-mode">
+                <option value="equal_weight" selected>Equal Weight</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>Analytics Detail</label>
+              <select id="cfg-analytics-detail">
+                <option value="professional" selected>Professional</option>
+                <option value="compact">Compact</option>
               </select>
             </div>
             <div class="form-row">
@@ -1884,6 +1982,8 @@ let stockHistory = {};   // sym → price array
 let agents = [];
 let halted = [];
 let chartInstances = {};
+let marketAnalytics = null;
+let agentAnalyticsCache = {};
 let selectedAgent = null;
 let snapshotList = [];
 let activeReportTab = null;
@@ -2050,6 +2150,14 @@ function handleTick(d) {
   state.day = d.day; state.session = d.session;
   state.total_trades = d.trades; state.active_agents = d.agents;
   halted = d.halted || [];
+  if (d.regime) {
+    marketAnalytics = marketAnalytics || {};
+    marketAnalytics.regime = d.regime;
+  }
+  if (d.benchmark) {
+    marketAnalytics = marketAnalytics || {};
+    marketAnalytics.benchmark = { ...(marketAnalytics.benchmark || {}), ...d.benchmark };
+  }
   updateSidebar();
   updateMetrics();
 
@@ -2101,6 +2209,7 @@ function pushPriceHistory(prices, day, session) {
 ═══════════════════════════════════════════ */
 function handleStatus(s) {
   state = { ...state, ...s };
+  marketAnalytics = s.market_analytics || marketAnalytics;
   updateSidebar();
   updateMetrics();
 }
@@ -2133,12 +2242,28 @@ function updateMetrics() {
   document.getElementById('m-trades').textContent = state.total_trades || 0;
   document.getElementById('m-agents').textContent = state.active_agents || 0;
   document.getElementById('m-halted').textContent = halted.length;
+  document.getElementById('m-events').textContent = snapshotList.length || 0;
 
   if (agents.length) {
     const best = [...agents].sort((a, b) => b.pnl - a.pnl)[0];
     document.getElementById('m-bestpnl').textContent = best ? fmtPct(best.pnl_pct) : '—';
     document.getElementById('m-bestagent').textContent = best ? best.name : '—';
   }
+
+  if (!marketAnalytics) return;
+  const benchmark = marketAnalytics.benchmark || {};
+  const breadth = marketAnalytics.breadth || {};
+  document.getElementById('m-regime').textContent = (marketAnalytics.regime || '—').replace(/_/g, ' ').toUpperCase();
+  document.getElementById('m-regime-headline').textContent = marketAnalytics.scenario || '—';
+  document.getElementById('m-benchmark').textContent = benchmark.level != null ? benchmark.level.toFixed(2) : '—';
+  document.getElementById('m-benchmark-ret').textContent = benchmark.return_pct != null ? `${benchmark.return_pct >= 0 ? '+' : ''}${benchmark.return_pct.toFixed(2)}% vs base` : 'vs base 100';
+  document.getElementById('m-breadth').textContent = breadth.breadth_ratio != null ? `${(breadth.breadth_ratio * 100).toFixed(0)}%` : '—';
+  document.getElementById('m-breadth-sub').textContent = `${breadth.advancers || 0} up / ${breadth.decliners || 0} down`;
+  document.getElementById('m-realized-vol').textContent = marketAnalytics.realized_vol_pct != null ? `${marketAnalytics.realized_vol_pct.toFixed(1)}%` : '—';
+  document.getElementById('m-session-risk').textContent = marketAnalytics.session_risk || 'session risk';
+  document.getElementById('m-drawdown').textContent = benchmark.drawdown_pct != null ? `${benchmark.drawdown_pct.toFixed(2)}%` : '—';
+  document.getElementById('m-turnover').textContent = marketAnalytics.turnover != null ? `${(marketAnalytics.turnover * 100).toFixed(1)}%` : '—';
+  document.getElementById('m-sentiment').textContent = marketAnalytics.market_sentiment || 'market sentiment';
 }
 
 /* ═══════════════════════════════════════════
@@ -2508,11 +2633,75 @@ async function snapshotSeek(day) {
 ═══════════════════════════════════════════ */
 async function loadAnalysis() {
   await loadMarketStocks();
+  await loadMarketAnalytics();
   renderStocksTable();
   renderSectorChart();
+  renderBenchmarkChart();
+  renderScenarioPanel();
   renderHeatmap();
   buildDepthSelect();
+  const stockSelect = document.getElementById('stock-select');
+  if (stockSelect && !stockSelect.value) {
+    stockSelect.value = Object.keys(allStocks)[0] || '';
+  }
+  await loadStockChart();
   loadReports();
+}
+
+async function loadMarketAnalytics() {
+  const data = await apiFetch('/market/analytics');
+  if (data) marketAnalytics = data;
+}
+
+function renderBenchmarkChart() {
+  if (!marketAnalytics || !marketAnalytics.benchmark) return;
+  clearChart('benchmarkChart');
+  const ctx = document.getElementById('benchmarkChart').getContext('2d');
+  const benchmark = marketAnalytics.benchmark;
+  const sectors = marketAnalytics.sectors || {};
+  chartInstances.benchmarkChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Benchmark', ...Object.keys(sectors)],
+      datasets: [{
+        label: 'Return vs Base',
+        data: [benchmark.return_pct || 0, ...Object.values(sectors).map(v => v - 100)],
+        backgroundColor: ['rgba(74,222,128,0.7)', ...Object.values(sectors).map(v => v >= 100 ? 'rgba(56,189,248,0.7)' : 'rgba(248,113,113,0.7)')],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#aaa', font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: '#1a1a1a' } },
+        y: { ticks: { color: '#aaa', font: { family: 'JetBrains Mono', size: 10 }, callback: v => `${v.toFixed(1)}%` }, grid: { color: '#1a1a1a' } }
+      }
+    }
+  });
+}
+
+function renderScenarioPanel() {
+  if (!marketAnalytics) return;
+  const sectors = Object.entries(marketAnalytics.sectors || {}).sort((a, b) => b[1] - a[1]);
+  const leader = sectors[0];
+  const laggard = sectors[sectors.length - 1];
+  const breadthPct = ((marketAnalytics.breadth?.breadth_ratio || 0) * 100).toFixed(0);
+  document.getElementById('scenario-panel').innerHTML = `
+    <div><span style="color:var(--muted)">Regime:</span> <strong style="color:var(--lime)">${escHtml((marketAnalytics.regime || 'n/a').replace(/_/g, ' '))}</strong></div>
+    <div><span style="color:var(--muted)">Scenario:</span> ${escHtml(marketAnalytics.scenario || '—')}</div>
+    <div><span style="color:var(--muted)">Benchmark:</span> ${marketAnalytics.benchmark?.return_pct >= 0 ? '+' : ''}${(marketAnalytics.benchmark?.return_pct || 0).toFixed(2)}%</div>
+    <div><span style="color:var(--muted)">Sentiment:</span> ${escHtml(marketAnalytics.market_sentiment || 'neutral')}</div>`;
+  document.getElementById('sector-leadership').innerHTML = `
+    <div><span style="color:var(--muted)">Leader:</span> <strong style="color:var(--cyan)">${leader ? `${leader[0]} (${(leader[1] - 100).toFixed(2)}%)` : '—'}</strong></div>
+    <div><span style="color:var(--muted)">Laggard:</span> <strong style="color:var(--red)">${laggard ? `${laggard[0]} (${(laggard[1] - 100).toFixed(2)}%)` : '—'}</strong></div>
+    <div><span style="color:var(--muted)">Breadth:</span> ${breadthPct}%</div>
+    <div><span style="color:var(--muted)">Dispersion:</span> ${((marketAnalytics.breadth?.dispersion || 0) * 100).toFixed(2)}%</div>`;
+  document.getElementById('risk-decomposition').innerHTML = `
+    <div><span style="color:var(--muted)">Realized Vol:</span> <strong style="color:var(--yellow)">${(marketAnalytics.realized_vol_pct || 0).toFixed(2)}%</strong></div>
+    <div><span style="color:var(--muted)">Drawdown:</span> ${(marketAnalytics.benchmark?.drawdown_pct || 0).toFixed(2)}%</div>
+    <div><span style="color:var(--muted)">Turnover:</span> ${((marketAnalytics.turnover || 0) * 100).toFixed(2)}%</div>
+    <div><span style="color:var(--muted)">Session Risk:</span> ${escHtml(marketAnalytics.session_risk || 'Normal')}</div>`;
 }
 
 function renderStocksTable() {
@@ -2596,10 +2785,24 @@ function renderSectorChart() {
 
 async function loadStockChart() {
   const sym = document.getElementById('stock-select').value;
-  if (!sym) return;
+  const caption = document.getElementById('stock-chart-caption');
+  if (!sym) {
+    clearChart('stockChart');
+    if (caption) caption.textContent = 'Select a stock to view its recorded session-by-session price history.';
+    return;
+  }
   const h = await apiFetch(`/market/history/${sym}`);
-  if (!h || !h.history) return;
+  if (!h || !h.history) {
+    clearChart('stockChart');
+    if (caption) caption.textContent = `No price history is available for ${sym} yet. Run the simulation and try again.`;
+    return;
+  }
   const pts = h.history;
+  if (pts.length < 2) {
+    clearChart('stockChart');
+    if (caption) caption.textContent = `${sym} needs at least 2 recorded sessions before this chart can draw a trend line. Run another session or day, then reopen Analysis.`;
+    return;
+  }
   const labels = pts.map(p => `${p.day}.${p.session}`);
   const prices = pts.map(p => p.price);
 
@@ -2629,6 +2832,11 @@ async function loadStockChart() {
       }
     }
   });
+  if (caption) {
+    const start = pts[0];
+    const end = pts[pts.length - 1];
+    caption.textContent = `${sym} history is active. Showing ${pts.length} recorded points from Day ${start.day} Session ${start.session} through Day ${end.day} Session ${end.session}.`;
+  }
 }
 
 async function loadReports() {
@@ -2685,6 +2893,8 @@ async function loadAgents() {
   const data = await apiFetch('/agents');
   if (!data) return;
   agents = data;
+  const analyticsPairs = await Promise.all(agents.map(async a => [a.id, await apiFetch(`/agents/${a.id}/analytics`)]));
+  agentAnalyticsCache = Object.fromEntries(analyticsPairs.filter(([_, val]) => !!val));
   updateMetrics();
   renderAgentsTable();
   buildExplAgentSelect();
@@ -2695,6 +2905,7 @@ function renderAgentsTable() {
   const sorted = [...agents].sort((a, b) => b.total_value - a.total_value);
   const medals = ['#1', '#2', '#3'];
   tbody.innerHTML = sorted.map((a, i) => {
+    const score = agentAnalyticsCache[a.id] || {};
     const kindBadge = a.agent_kind === 'llm'
       ? '<span class="badge llm">LLM</span>'
       : '<span class="badge rule">RULE</span>';
@@ -2712,6 +2923,10 @@ function renderAgentsTable() {
       <td style="font-weight:700;color:var(--white)">${fmtMoney(a.total_value)}</td>
       <td class="${pnlCls}">${a.pnl >= 0 ? '+' : ''}${fmtMoney(a.pnl)}</td>
       <td class="${pnlCls}">${fmtPct(a.pnl_pct)}</td>
+      <td>${score.sharpe_ratio?.toFixed ? score.sharpe_ratio.toFixed(2) : '—'}</td>
+      <td>${score.sortino_ratio?.toFixed ? score.sortino_ratio.toFixed(2) : '—'}</td>
+      <td>${score.beta?.toFixed ? score.beta.toFixed(2) : '—'}</td>
+      <td>${score.consistency_score?.toFixed ? score.consistency_score.toFixed(0) : (a.consistency_score || '—')}</td>
       <td>${a.trades}</td>
       <td>${fmtMoney(a.cash)}</td>
       <td class="${a.debt > 0 ? 'neg' : ''}">${a.debt > 0 ? fmtMoney(a.debt) : '—'}</td>
@@ -2731,16 +2946,23 @@ async function selectAgent(id) {
   document.getElementById('detail-title').textContent = `${agent.name} — ${agent.character_type}`;
 
   // Analytics
-  const an = await apiFetch(`/agents/${id}/analytics`);
+  const an = agentAnalyticsCache[id] || await apiFetch(`/agents/${id}/analytics`);
+  if (an) agentAnalyticsCache[id] = an;
   const dc = document.getElementById('detail-analytics');
   if (an) {
     dc.innerHTML = [
       ['Sharpe Ratio', an.sharpe_ratio?.toFixed(3) ?? '—', 'var(--cyan)'],
+      ['Sortino', an.sortino_ratio?.toFixed(3) ?? '—', 'var(--lime)'],
+      ['Beta', an.beta?.toFixed(3) ?? '—', 'var(--magenta)'],
+      ['Volatility', an.volatility != null ? fmtPct(an.volatility) : '—', 'var(--yellow)'],
       ['Max Drawdown', an.max_drawdown != null ? fmtPct(an.max_drawdown) : '—', 'var(--red)'],
       ['Win Rate',     an.win_rate     != null ? fmtPct(an.win_rate)     : '—', 'var(--lime)'],
+      ['Consistency', an.consistency_score != null ? `${an.consistency_score.toFixed(0)}/100` : '—', 'var(--white)'],
+      ['Concentration', an.concentration_hhi?.toFixed(3) ?? '—', 'var(--cyan)'],
+      ['Cash Ratio', an.cash_ratio != null ? fmtPct(an.cash_ratio) : '—', 'var(--yellow)'],
+      ['Debt Ratio', an.debt_ratio != null ? fmtPct(an.debt_ratio) : '—', agent.debt > 0 ? 'var(--red)' : 'var(--muted)'],
       ['Avg Trade $', an.avg_trade_size != null ? fmtMoney(an.avg_trade_size) : '—', 'var(--yellow)'],
       ['Total Trades', an.total_trades ?? '—', 'var(--white)'],
-      ['Debt', fmtMoney(agent.debt || 0), agent.debt > 0 ? 'var(--red)' : 'var(--muted)'],
     ].map(([label, val, color]) => `
       <div class="card" style="padding:10px">
         <div class="card-title" style="margin-bottom:4px">${label}</div>
@@ -2763,6 +2985,29 @@ async function selectAgent(id) {
     }).join('');
   } else {
     hbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted);text-align:center">No holdings</td></tr>';
+  }
+
+  const attribution = document.getElementById('detail-attribution');
+  if (an && an.attribution) {
+    const sectorRows = Object.entries(an.attribution.sector_pnl || {}).map(([sector, pnl]) =>
+      `<div><span style="color:var(--muted)">${escHtml(sector)}:</span> <strong class="${pnl >= 0 ? 'pos' : 'neg'}">${pnl >= 0 ? '+' : ''}${fmtMoney(pnl)}</strong></div>`
+    ).join('') || '<div class="empty">No attribution yet.</div>';
+    attribution.innerHTML = `
+      <div class="card" style="padding:10px">
+        <div class="card-title" style="margin-bottom:8px">PnL Attribution</div>
+        <div style="font-family:var(--mono);font-size:11px;line-height:1.8">${sectorRows}</div>
+      </div>
+      <div class="card" style="padding:10px">
+        <div class="card-title" style="margin-bottom:8px">Contribution Split</div>
+        <div style="font-family:var(--mono);font-size:11px;line-height:1.8">
+          <div><span style="color:var(--muted)">Trading:</span> ${fmtMoney(an.attribution.trading_pnl || 0)}</div>
+          <div><span style="color:var(--muted)">Mark-to-market:</span> ${fmtMoney(an.attribution.mark_to_market_pnl || 0)}</div>
+          <div><span style="color:var(--muted)">Best:</span> ${escHtml(an.attribution.best_contributor?.symbol || '—')} ${fmtMoney(an.attribution.best_contributor?.pnl || 0)}</div>
+          <div><span style="color:var(--muted)">Worst:</span> ${escHtml(an.attribution.worst_contributor?.symbol || '—')} ${fmtMoney(an.attribution.worst_contributor?.pnl || 0)}</div>
+        </div>
+      </div>`;
+  } else {
+    attribution.innerHTML = '<div class="empty">No attribution summary yet.</div>';
   }
 }
 
@@ -2885,6 +3130,9 @@ async function loadGlobalExplainability() {
   document.getElementById('expl-top-stock').textContent = topStkEntry
     ? (allStocks[topStkEntry[0]]?.name || topStkEntry[0])
     : '—';
+  document.getElementById('expl-avg-conviction').textContent = data.avg_conviction != null ? `${data.avg_conviction.toFixed(1)}/100` : '—';
+  document.getElementById('expl-thesis-drift').textContent = data.thesis_drift_total ?? '—';
+  document.getElementById('expl-consistency-avg').textContent = data.decision_consistency_avg != null ? `${data.decision_consistency_avg.toFixed(1)}/100` : '—';
 
   // ── Bias distribution chart ──
   const biasEmpty = document.getElementById('biasChart-empty');
@@ -3072,7 +3320,7 @@ function renderAgentComparisonTable(perAgent) {
         <div class="bias-bar-wrap">${barsHtml}</div>
         <div style="font-size:9px;color:${biasColors[domBias]};margin-top:2px">${domBias.replace(/_/g,' ')} (${bp[domBias] || '—'})</div>
       </td>
-      <td style="color:var(--muted);font-size:11px">${a.risk_tolerance || '—'}</td>
+      <td style="color:var(--muted);font-size:11px">${a.risk_tolerance || '—'} · ${a.avg_conviction?.toFixed ? a.avg_conviction.toFixed(0) : 0} cv · ${a.consistency_score?.toFixed ? a.consistency_score.toFixed(0) : 0} cs · ${a.thesis_drift_count || 0} drift</td>
     </tr>`;
   }).join('');
 
@@ -3120,11 +3368,12 @@ async function loadExplainability() {
     ['BUY Decisions',  buys,  'var(--lime)'],
     ['SELL Decisions', sells, 'var(--red)'],
     ['HOLD Decisions', holds, 'var(--yellow)'],
+    ['Avg Conviction', Math.round(_explDecisions.reduce((sum, d) => sum + (d.memo?.conviction || 0), 0) / _explDecisions.length || 0), 'var(--cyan)'],
   ].map(([label, val, color]) => `
     <div class="card" style="padding:12px">
       <div class="card-title" style="margin-bottom:4px;font-size:10px">${label}</div>
       <div style="font-family:var(--mono);font-weight:800;font-size:28px;color:${color}">${val}</div>
-      <div style="font-size:10px;color:var(--muted);font-family:var(--mono)">${Math.round(val/_explDecisions.length*100)}% of total</div>
+      <div style="font-size:10px;color:var(--muted);font-family:var(--mono)">${label === 'Avg Conviction' ? 'memo quality signal' : `${Math.round(val/_explDecisions.length*100)}% of total`}</div>
     </div>`).join('');
 
   // ── Bias Radar for this agent ──
@@ -3173,6 +3422,12 @@ function renderTimeline() {
         ${d.biases && d.biases.length ? `<span style="font-size:10px;color:var(--muted)">[${d.biases.join(', ')}]</span>` : ''}
       </div>
       ${d.reasoning ? `<div class="decision-reasoning">${escHtml(d.reasoning)}</div>` : ''}
+      ${d.memo ? `<div style="margin-top:8px;font-family:var(--mono);font-size:10px;line-height:1.8;color:var(--muted)">
+        <div><span style="color:var(--cyan)">Thesis:</span> ${escHtml(d.memo.thesis || '—')}</div>
+        <div><span style="color:var(--yellow)">Catalyst:</span> ${escHtml(d.memo.catalyst || '—')}</div>
+        <div><span style="color:var(--red)">Risk:</span> ${escHtml(d.memo.risk || '—')}</div>
+        <div><span style="color:var(--lime)">Conviction:</span> ${d.memo.conviction || 0}/100 · Horizon ${d.memo.horizon_days || 0}d · ${escHtml(d.memo.exposure_impact || 'maintain')}</div>
+      </div>` : ''}
     </div>`).join('');
 }
 
@@ -3184,13 +3439,22 @@ async function applyConfig() {
   const num_days   = parseInt(document.getElementById('cfg-days').value);
   const use_llm    = document.getElementById('cfg-llm').checked;
   const enable_loans = document.getElementById('cfg-loans').checked;
+  const volatility = document.getElementById('cfg-vol').value;
+  const speed = parseFloat(document.getElementById('cfg-speed').value);
+  const regime_sensitivity = parseFloat(document.getElementById('cfg-regime-sensitivity').value);
+  const benchmark_mode = document.getElementById('cfg-benchmark-mode').value;
+  const analytics_detail = document.getElementById('cfg-analytics-detail').value;
   const seedVal    = document.getElementById('cfg-seed').value;
   const seed       = seedVal ? parseInt(seedVal) : null;
 
-  const r = await apiPost('/simulation/config', { num_agents, num_days, use_llm, enable_loans, seed });
+  const r = await apiPost('/simulation/config', {
+    num_agents, num_days, use_llm, enable_loans, seed,
+    volatility, speed, regime_sensitivity, benchmark_mode, analytics_detail
+  });
   if (r) {
     configuredDays = num_days;
     toast('Config applied ✓', 'var(--lime)');
+    await loadMarketAnalytics();
     updateMetrics();
   } else toast('Failed to apply config', 'var(--red)');
 }
@@ -3384,11 +3648,14 @@ function startRefreshLoop() {
 async function init() {
   connectWS();
   await pollStatus();
+  await loadMarketAnalytics();
   await loadMarketStocks();
+  await loadAgents();
   loadTrades();
   loadEvents();
   loadForum();
   loadSnapshots();
+  updateMetrics();
   startRefreshLoop();
 }
 

@@ -217,6 +217,9 @@ class SimulationConfig(BaseModel):
     enable_loans: bool = True
     speed: float = Field(default=2.0, ge=0.1, le=30.0)
     seed: Optional[int] = None
+    regime_sensitivity: float = Field(default=1.0, ge=0.5, le=2.0)
+    benchmark_mode: str = "equal_weight"
+    analytics_detail: str = "professional"
 
 
 # ═══════════════════════════════════════════════════════════════

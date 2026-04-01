@@ -4,6 +4,7 @@ import backend.app.state as state
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel, Field
 from backend.app.models.types import SimulationConfig
+from backend.app.core.analytics import compute_market_analytics
 
 
 class ExtendRequest(BaseModel):
@@ -16,6 +17,8 @@ logger = logging.getLogger("api.simulation")
 @router.get("/status")
 async def get_status():
     sim = state.simulation
+    prices = {s: (state.market_books[s].last_price or state.STOCKS[s].initial_price) for s in state.STOCKS}
+    analytics = compute_market_analytics(sim, prices, state.STOCKS)
     return {
         "is_running": sim.is_running,
         "is_paused": sim.is_paused,
@@ -24,10 +27,15 @@ async def get_status():
         "total_days": sim.total_days,
         "total_trades": sim.total_trade_count,
         "active_agents": sum(1 for a in state.agents if a.status == "active"),
-        "stocks": {
-            s: {"name": state.STOCKS[s].name, "price": state.market_books[s].last_price or state.STOCKS[s].initial_price}
-            for s in state.STOCKS
-        },
+        "stocks": {s: {"name": state.STOCKS[s].name, "price": prices[s]} for s in state.STOCKS},
+        "market_analytics": analytics,
+        "regime": analytics["regime"],
+        "benchmark": analytics["benchmark"],
+        "breadth": analytics["breadth"],
+        "realized_vol_pct": analytics["realized_vol_pct"],
+        "turnover": analytics["turnover"],
+        "market_sentiment": analytics["market_sentiment"],
+        "session_risk": analytics["session_risk"],
     }
 
 

@@ -32,36 +32,42 @@ AGENT_PERSONAS = [
     {
         "name": "Warren", "type": "Conservative",
         "description": "A cautious value investor who prefers stable, established companies.",
+        "strategy_style": "value",
         "risk_tolerance": "Low",
         "bias_profile": {"herding": "Low", "loss_aversion": "High", "overconfidence": "Low", "anchoring": "High"},
     },
     {
         "name": "Catherine", "type": "Aggressive",
         "description": "A bold trader who seeks high returns through active trading and momentum plays.",
+        "strategy_style": "momentum",
         "risk_tolerance": "High",
         "bias_profile": {"herding": "High", "loss_aversion": "Low", "overconfidence": "High", "anchoring": "Low"},
     },
     {
         "name": "Ray", "type": "Balanced",
         "description": "A diversified investor who balances risk and reward carefully.",
+        "strategy_style": "quality",
         "risk_tolerance": "Medium",
         "bias_profile": {"herding": "Medium", "loss_aversion": "Medium", "overconfidence": "Low", "anchoring": "Medium"},
     },
     {
         "name": "Satoshi", "type": "Growth-Oriented",
         "description": "A growth chaser who targets emerging sectors and high-growth opportunities.",
+        "strategy_style": "event_driven",
         "risk_tolerance": "Medium-High",
         "bias_profile": {"herding": "Medium", "loss_aversion": "Low", "overconfidence": "Medium", "anchoring": "Low"},
     },
     {
         "name": "Janet", "type": "Conservative",
         "description": "An institutional investor focused on capital preservation and dividend income.",
+        "strategy_style": "macro",
         "risk_tolerance": "Low",
         "bias_profile": {"herding": "Low", "loss_aversion": "High", "overconfidence": "Low", "anchoring": "High"},
     },
     {
         "name": "Elon", "type": "Aggressive",
         "description": "A high-conviction trader who makes concentrated bets based on bold visions.",
+        "strategy_style": "contrarian",
         "risk_tolerance": "Very High",
         "bias_profile": {"herding": "Low", "loss_aversion": "Low", "overconfidence": "High", "anchoring": "Low"},
     },
@@ -104,11 +110,17 @@ class BaseAgent:
 
         # ── Analytics tracking ──
         self._pnl_history: List[float] = []   # PnL at end of each session
+        self._portfolio_history: List[float] = []
         self._peak_value: float = float(initial_cash)
         self._max_drawdown: float = 0.0
         self._profitable_sessions: int = 0    # sessions where PnL improved
         self._sessions_count: int = 0         # total sessions measured
         self._total_trade_qty: int = 0
+        self._last_action: str = "hold"
+        self._strategy_drift_count: int = 0
+        self._thesis_reversal_count: int = 0
+        self._consistency_score: float = 100.0
+        self._regime_performance: Dict[str, Dict[str, float]] = {}
 
     # ── Character profile lookup ──
     @property
@@ -143,6 +155,7 @@ class BaseAgent:
             if self.pnl > self._pnl_history[-1]:
                 self._profitable_sessions += 1
         self._pnl_history.append(self.pnl)
+        self._portfolio_history.append(self.total_value)
 
     # ── Loans ──
     @property
@@ -191,12 +204,30 @@ class BaseAgent:
     # ── Decision Logging ──
     def _log_decision(self, day: int, session: int, action: str,
                       stock: Optional[str], qty: int, price: float,
-                      reasoning: str, biases: List[str]):
+                      reasoning: str, biases: List[str], memo: Optional[Dict[str, Any]] = None):
+        memo = memo or {
+            "thesis": reasoning,
+            "catalyst": "technical setup",
+            "risk": "market noise",
+            "horizon_days": 5,
+            "conviction": 50,
+            "exposure_impact": "maintain",
+        }
+        if self._last_action and action != "hold" and self._last_action != "hold" and action != self._last_action:
+            self._strategy_drift_count += 1
+            self._thesis_reversal_count += 1
+            self._consistency_score = max(0.0, self._consistency_score - 4.5)
+        elif action == self._last_action and action != "hold":
+            self._consistency_score = min(100.0, self._consistency_score + 0.5)
+        elif action == "hold":
+            self._consistency_score = min(100.0, self._consistency_score + 0.2)
+        self._last_action = action
         entry = {
             "day": day, "session": session,
             "action": action, "stock": stock,
             "quantity": qty, "price": round(price, 2),
             "reasoning": reasoning, "biases": biases,
+            "memo": memo,
             "timestamp": __import__("datetime").datetime.now().isoformat(),
         }
         self.decision_log.append(entry)
@@ -226,7 +257,9 @@ class BaseAgent:
             "debt": round(self.total_debt, 2),
             "bias_profile": self.persona.get("bias_profile", {}),
             "description": self.persona.get("description", ""),
+            "strategy_style": self.persona.get("strategy_style", "balanced"),
             "risk_tolerance": self.persona.get("risk_tolerance", "Medium"),
+            "consistency_score": round(self._consistency_score, 1),
         }
 
     # ── Analytics ──
@@ -249,6 +282,9 @@ class BaseAgent:
             "win_rate": round(self._profitable_sessions / self._sessions_count * 100, 1) if self._sessions_count else 0,
             "avg_trade_size": round(self._total_trade_qty / self.trade_count, 1) if self.trade_count else 0,
             "total_trades": self.trade_count,
+            "consistency_score": round(self._consistency_score, 1),
+            "strategy_drift_count": self._strategy_drift_count,
+            "thesis_reversal_count": self._thesis_reversal_count,
         }
 
 
@@ -321,8 +357,16 @@ class BehavioralAgent(BaseAgent):
             qty = max(1, int(held * trade_pct))
             sell_price = round(price * random.uniform(0.98, 1.02), 2)
             self._record_trade(qty)
+            memo = {
+                "thesis": f"Trim exposure in {symbol} as simulated momentum softens.",
+                "catalyst": market_state.get("regime", "neutral").replace("_", " "),
+                "risk": "missing a rebound in crowded selling",
+                "horizon_days": 3,
+                "conviction": 48,
+                "exposure_impact": "reduce",
+            }
             self._log_decision(market_state.get("day", 0), market_state.get("session", 0),
-                               "sell", symbol, qty, sell_price, "Demo fallback sell", [])
+                               "sell", symbol, qty, sell_price, "Demo fallback sell", [], memo)
             return Order(id=str(uuid.uuid4()), agent_id=str(self.id),
                          stock_symbol=symbol, side=OrderSide.SELL,
                          type=OrderType.LIMIT, price=sell_price, quantity=qty,
@@ -334,15 +378,31 @@ class BehavioralAgent(BaseAgent):
             qty = max(1, int(budget / price))
             buy_price = round(price * random.uniform(0.98, 1.02), 2)
             self._record_trade(qty)
+            memo = {
+                "thesis": f"Add to {symbol} on supportive simulated trend and breadth.",
+                "catalyst": market_state.get("regime", "neutral").replace("_", " "),
+                "risk": "trend could reverse before thesis horizon",
+                "horizon_days": 5,
+                "conviction": 62,
+                "exposure_impact": "increase",
+            }
             self._log_decision(market_state.get("day", 0), market_state.get("session", 0),
-                               "buy", symbol, qty, buy_price, "Demo fallback buy", [])
+                               "buy", symbol, qty, buy_price, "Demo fallback buy", [], memo)
             return Order(id=str(uuid.uuid4()), agent_id=str(self.id),
                          stock_symbol=symbol, side=OrderSide.BUY,
                          type=OrderType.LIMIT, price=buy_price, quantity=qty,
                          timestamp=market_state.get("timestamp"))
 
+        memo = {
+            "thesis": "Hold current exposure while signal quality stays mixed.",
+            "catalyst": market_state.get("regime", "neutral").replace("_", " "),
+            "risk": "opportunity cost from inactivity",
+            "horizon_days": 2,
+            "conviction": 35,
+            "exposure_impact": "maintain",
+        }
         self._log_decision(market_state.get("day", 0), market_state.get("session", 0),
-                           "hold", None, 0, 0, "Demo fallback hold", [])
+                           "hold", None, 0, 0, "Demo fallback hold", [], memo)
         return None
 
     # ── LLM Mode ──
@@ -355,6 +415,7 @@ class BehavioralAgent(BaseAgent):
         self._update_pnl(market_state["prices"])
         biases = self._determine_biases(market_state)
         profile_snapshot = {**self.persona, "wallet": self.wallet, "pnl": self.pnl}
+        profile_snapshot["total_debt"] = self.total_debt
         available_stocks = [s for s in market_state["prices"] if s not in market_state.get("halted", set())]
 
         prompt = PromptFactory.create_trade_prompt(
@@ -374,10 +435,18 @@ class BehavioralAgent(BaseAgent):
             data = json.loads(response_str)
             action = data.get("action", "hold").lower()
             reasoning = data.get("reasoning", "LLM decision")
+            memo = {
+                "thesis": data.get("thesis", reasoning),
+                "catalyst": data.get("catalyst", market_state.get("regime", "neutral").replace("_", " ")),
+                "risk": data.get("risk", "market volatility"),
+                "horizon_days": int(data.get("horizon_days", 5) or 5),
+                "conviction": max(1, min(100, int(data.get("conviction", 55) or 55))),
+                "exposure_impact": data.get("exposure_impact", "maintain"),
+            }
 
             if action == "hold" or data.get("stock") not in available_stocks:
                 self._log_decision(market_state.get("day", 0), market_state.get("session", 0),
-                                   "hold", data.get("stock"), 0, 0, reasoning, biases)
+                                   "hold", data.get("stock"), 0, 0, reasoning, biases, memo)
                 return None
 
             price = float(data.get("price", 0.0))
@@ -387,18 +456,24 @@ class BehavioralAgent(BaseAgent):
             if qty <= 0 or price <= 0:
                 return None
 
+            conviction_scale = max(0.25, memo["conviction"] / 100.0)
+            max_budget = self.wallet["cash"] * min(0.35, self._char["trade_size_pct"] * (0.7 + conviction_scale))
             if action == "buy" and price * qty > self.wallet["cash"]:
                 qty = int(self.wallet["cash"] / price)
                 if qty <= 0:
                     return None
+            elif action == "buy" and price * qty > max_budget:
+                qty = max(1, int(max_budget / price))
             if action == "sell" and qty > self.wallet["holdings"].get(stock, 0):
                 qty = self.wallet["holdings"].get(stock, 0)
                 if qty <= 0:
                     return None
+            if action == "sell":
+                qty = min(qty, max(1, int(self.wallet["holdings"].get(stock, 0) * 0.6)))
 
             self._record_trade(qty)
             self._log_decision(market_state.get("day", 0), market_state.get("session", 0),
-                               action, stock, qty, price, reasoning, biases)
+                               action, stock, qty, price, reasoning, biases, memo)
             return Order(
                 id=str(uuid.uuid4()), agent_id=str(self.id),
                 stock_symbol=stock,
@@ -425,6 +500,12 @@ class RuleBasedAgent(BaseAgent):
             "name": name,
             "type": character_type,
             "description": f"Rule-based {character_type} trader",
+            "strategy_style": {
+                "Conservative": "value",
+                "Aggressive": "momentum",
+                "Balanced": "quality",
+                "Growth-Oriented": "event_driven",
+            }.get(character_type, "balanced"),
             "risk_tolerance": {"Conservative": "Low", "Aggressive": "High",
                                "Balanced": "Medium", "Growth-Oriented": "Medium-High"}.get(character_type, "Medium"),
             "bias_profile": {},
@@ -470,15 +551,31 @@ class RuleBasedAgent(BaseAgent):
             price = market_state["prices"].get(symbol, 100.0)
             budget = self.wallet["cash"] * trade_pct
             if budget < price:
+                memo = {
+                    "thesis": "Maintain posture until enough cash is available for a sized position.",
+                    "catalyst": market_state.get("regime", "neutral").replace("_", " "),
+                    "risk": "cash drag during a rally",
+                    "horizon_days": 2,
+                    "conviction": 30,
+                    "exposure_impact": "maintain",
+                }
                 self._log_decision(market_state.get("day", 0), market_state.get("session", 0),
-                                   "hold", None, 0, 0, "Insufficient cash", [])
+                                   "hold", None, 0, 0, "Insufficient cash", [], memo)
                 return None
             qty = max(1, int(budget / price))
             buy_price = round(price * random.uniform(0.98, 1.02), 2)
             self._record_trade(qty)
+            memo = {
+                "thesis": f"Increase {symbol} exposure as rule-based signals align with {sentiment} tape.",
+                "catalyst": market_state.get("regime", "neutral").replace("_", " "),
+                "risk": "false positive trend signal",
+                "horizon_days": 4,
+                "conviction": int(min(85, max(40, roll * 100))),
+                "exposure_impact": "increase",
+            }
             self._log_decision(market_state.get("day", 0), market_state.get("session", 0),
                                "buy", symbol, qty, buy_price,
-                               f"Rule: roll={roll:.2f} > buy_threshold={buy_threshold:.2f}", [])
+                               f"Rule: roll={roll:.2f} > buy_threshold={buy_threshold:.2f}", [], memo)
             return Order(id=str(uuid.uuid4()), agent_id=str(self.id),
                          stock_symbol=symbol, side=OrderSide.BUY,
                          type=OrderType.LIMIT, price=buy_price, quantity=qty,
@@ -488,26 +585,50 @@ class RuleBasedAgent(BaseAgent):
             # SELL — pick held stock
             held_stocks = [s for s in available if self.wallet["holdings"].get(s, 0) > 0]
             if not held_stocks:
+                memo = {
+                    "thesis": "No risk can be reduced because the current book is empty.",
+                    "catalyst": market_state.get("regime", "neutral").replace("_", " "),
+                    "risk": "staying underinvested",
+                    "horizon_days": 1,
+                    "conviction": 20,
+                    "exposure_impact": "maintain",
+                }
                 self._log_decision(market_state.get("day", 0), market_state.get("session", 0),
-                                   "hold", None, 0, 0, "Nothing to sell", [])
+                                   "hold", None, 0, 0, "Nothing to sell", [], memo)
                 return None
             symbol = random.choice(held_stocks)
             price = market_state["prices"].get(symbol, 100.0)
             held = self.wallet["holdings"][symbol]
-            qty = max(1, int(held * trade_pct))
+            qty = max(1, int(held * min(trade_pct, 0.5)))
             sell_price = round(price * random.uniform(0.98, 1.02), 2)
             self._record_trade(qty)
+            memo = {
+                "thesis": f"Reduce {symbol} after a weaker signal profile and tighter risk conditions.",
+                "catalyst": market_state.get("regime", "neutral").replace("_", " "),
+                "risk": "selling too early into strength",
+                "horizon_days": 3,
+                "conviction": int(min(80, max(35, (1 - roll) * 100))),
+                "exposure_impact": "reduce",
+            }
             self._log_decision(market_state.get("day", 0), market_state.get("session", 0),
                                "sell", symbol, qty, sell_price,
-                               f"Rule: roll={roll:.2f} < sell_threshold={sell_threshold:.2f}", [])
+                               f"Rule: roll={roll:.2f} < sell_threshold={sell_threshold:.2f}", [], memo)
             return Order(id=str(uuid.uuid4()), agent_id=str(self.id),
                          stock_symbol=symbol, side=OrderSide.SELL,
                          type=OrderType.LIMIT, price=sell_price, quantity=qty,
                          timestamp=market_state.get("timestamp"))
 
+        memo = {
+            "thesis": "Signal quality is balanced, so hold current book.",
+            "catalyst": market_state.get("regime", "neutral").replace("_", " "),
+            "risk": "missed move while staying neutral",
+            "horizon_days": 2,
+            "conviction": 42,
+            "exposure_impact": "maintain",
+        }
         self._log_decision(market_state.get("day", 0), market_state.get("session", 0),
                            "hold", None, 0, 0,
-                           f"Rule: {sell_threshold:.2f} <= roll={roll:.2f} <= {buy_threshold:.2f}", [])
+                           f"Rule: {sell_threshold:.2f} <= roll={roll:.2f} <= {buy_threshold:.2f}", [], memo)
         return None
 
     async def act(self, market_state: Dict[str, Any], news: str) -> Optional[Order]:

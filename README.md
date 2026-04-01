@@ -120,6 +120,20 @@ docker build -t stockai .
 docker run -p 8000:8000 --env-file .env stockai
 ```
 
+For Docker Compose:
+
+```bash
+docker compose up --build -d
+```
+
+Useful Docker Compose commands:
+
+```bash
+docker compose ps
+docker compose logs -f
+docker compose down
+```
+
 ## Architecture Docs
 
 Editable Mermaid diagrams live in `docs/architecture.mmd` and `docs/workflow.mmd`.

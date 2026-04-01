@@ -1415,6 +1415,12 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
               Select a stock to view its recorded session-by-session price history.
             </div>
           </div>
+          <div class="card magenta">
+            <div class="card-title">Market Breadth</div>
+            <div class="chart-wrap" style="height:200px">
+              <canvas id="breadthChart"></canvas>
+            </div>
+          </div>
         </div>
 
         <div class="grid-3" style="margin-bottom:16px">
@@ -2637,13 +2643,10 @@ async function loadAnalysis() {
   renderStocksTable();
   renderSectorChart();
   renderBenchmarkChart();
+  renderBreadthChart();
   renderScenarioPanel();
   renderHeatmap();
   buildDepthSelect();
-  const stockSelect = document.getElementById('stock-select');
-  if (stockSelect && !stockSelect.value) {
-    stockSelect.value = Object.keys(allStocks)[0] || '';
-  }
   await loadStockChart();
   loadReports();
 }
@@ -2676,6 +2679,43 @@ function renderBenchmarkChart() {
       scales: {
         x: { ticks: { color: '#aaa', font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: '#1a1a1a' } },
         y: { ticks: { color: '#aaa', font: { family: 'JetBrains Mono', size: 10 }, callback: v => `${v.toFixed(1)}%` }, grid: { color: '#1a1a1a' } }
+      }
+    }
+  });
+}
+
+function renderBreadthChart() {
+  if (!marketAnalytics || !marketAnalytics.breadth) return;
+  clearChart('breadthChart');
+  const ctx = document.getElementById('breadthChart').getContext('2d');
+  const breadth = marketAnalytics.breadth;
+  chartInstances.breadthChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Advancers', 'Decliners'],
+      datasets: [{
+        data: [breadth.advancers || 0, breadth.decliners || 0],
+        backgroundColor: ['rgba(74,222,128,0.78)', 'rgba(248,113,113,0.78)'],
+        borderColor: '#0a0a0a',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: '#aaa', font: { family: 'JetBrains Mono', size: 10 }, boxWidth: 12 }
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const total = (breadth.advancers || 0) + (breadth.decliners || 0) || 1;
+              const pct = ((ctx.raw / total) * 100).toFixed(0);
+              return ` ${ctx.label}: ${ctx.raw} (${pct}%)`;
+            }
+          }
+        }
       }
     }
   });

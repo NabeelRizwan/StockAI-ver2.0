@@ -21,6 +21,11 @@ class TestHealth:
     def test_root_health(self):
         r = client.get("/")
         assert r.status_code == 200
+        assert "text/html" in r.headers["content-type"]
+
+    def test_health_endpoint(self):
+        r = client.get("/health")
+        assert r.status_code == 200
         assert r.json()["status"] == "StockAI v2.0 Online"
 
     def test_frontend_served(self):

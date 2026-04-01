@@ -1,221 +1,129 @@
-# StockAI - Market Simulation Lab
+# StockAI v2.0
 
 ![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-API-009688.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-An agent-based stock market simulation platform that explores the intersection of behavioral finance and artificial intelligence. Watch autonomous trading agents with unique personalities compete, collaborate, and shape market dynamics in real-time simulations.
+StockAI v2.0 is an interactive AI stock market simulator with a FastAPI backend and a static HTML frontend. It lets you launch a browser-based simulation, watch autonomous agents trade, inspect live market state, review agent decisions, and export simulation data.
 
-## ✨ Features
+Live deployment: https://stockai-ver2-0.onrender.com/
 
-- **🤖 50+ AI Trading Agents** - Autonomous agents with different trading strategies (Conservative, Aggressive, Balanced, Growth-Oriented)
-- **📊 Real-Time Analytics** - Interactive Plotly charts showing price movements, volume, and technical indicators
-- **🧠 Behavioral Finance** - Agents exhibit real behavioral biases (Herding, Loss Aversion, Overconfidence, Anchoring)
-- **💬 BBS Forum** - Agents communicate through a bulletin board system, sharing opinions and sentiment
-- **📈 Market Events** - Random economic events that impact stock prices and agent behavior
-- **🏆 Leaderboard** - Track top-performing agents and compare strategy effectiveness
-- **📤 Export Data** - Download simulation results for further analysis
+## What Is Deployed
 
-## 🖥️ Screenshots
+- A landing page at `/`
+- A simulator dashboard at `/app`
+- A FastAPI backend serving market, simulation, agents, chat, data, and websocket routes
+- Live simulation state including stocks, agents, trades, events, forum activity, loans, and financial reports
+- Optional LLM-backed features through provider keys configured in `.env`
 
-### Landing Page
-Premium glassmorphism design with animated gradients and feature highlights.
+## Features
 
-### Simulation Dashboard
-Real-time market overview with stock performance charts, agent activities, and key metrics.
+- Multi-agent market simulation with rule-based and LLM-capable agents
+- Live stock prices, recent trades, market depth, and price history
+- Simulation lifecycle controls for start, pause, stop, reset, config updates, and extension
+- Agent analytics, explainability summaries, decision logs, and custom agent creation
+- Exportable structured data for downstream analysis
+- Static frontend served directly from the FastAPI app for simpler deployment
 
-### Guidelines Page
-Comprehensive documentation for using the platform effectively.
+## Tech Stack
 
-## 🚀 Quick Start
+- Backend: FastAPI, Pydantic, Uvicorn
+- Frontend: HTML, CSS, Vanilla JavaScript, Chart.js
+- Testing: Pytest, httpx TestClient
+- Optional AI providers: Groq, OpenAI, Google Gemini
+- Deployment: Render
 
-## 🏗️ Architecture & Workflow
+## Project Structure
 
-See `docs/architecture.mmd` and `docs/workflow.mmd` for editable Mermaid diagrams you can render or export.
-
-- Architecture: shows how `ui/app.py` interacts with `ui/simulation_engine.py`, local data (`record.py`, `res/`), logging, and optional LLM providers (Groq/Gemini/Mock).
-- Workflow: illustrates the user flow from UI configuration → simulation engine → optional LLM calls → logging and record export.
-
-If you prefer image files, render the Mermaid files in `docs/` using any Mermaid renderer or export via the Mermaid Live Editor (https://mermaid.live).
-
-### Visual Figures
-
-Architecture figure:
-
-![Architecture](fig/architecture.svg)
-
-Workflow figure:
-
-![Workflow](fig/workflow.svg)
-
-
-### Prerequisites
-
-- Python 3.9+
-- pip
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/RiyanOzair/StockAI.git
-cd StockAI
+```text
+StockAI/
+|-- backend/
+|   |-- app/
+|   |   |-- api/              # FastAPI route modules
+|   |   |-- agents/           # Agent logic and behaviors
+|   |   |-- models/           # Pydantic and domain models
+|   |   `-- main.py           # FastAPI app and frontend routes
+|   `-- run.py                # Local Uvicorn entry point
+|-- frontend/
+|   |-- landing.html          # Landing page served at /
+|   `-- index.html            # Simulator UI served at /app
+|-- docs/                     # Architecture and workflow diagrams
+|-- tests/                    # Critical path API tests
+|-- requirements.txt
+`-- README.md
 ```
 
-2. Create and activate virtual environment:
+## Run Locally
+
 ```bash
-python -m venv venv
+python -m venv .venv
 
 # Windows
-.\venv\Scripts\activate
+.\.venv\Scripts\activate
 
-# Linux/Mac
-source venv/bin/activate
-```
+# macOS / Linux
+source .venv/bin/activate
 
-3. Install dependencies:
-```bash
 pip install -r requirements.txt
+python backend/run.py
 ```
 
-4. Set up FREE LLM API Key (Groq recommended):
-   - Go to https://console.groq.com and create a free account
-   - Click "API Keys" and generate a new key
-   - Copy `.env.example` to `.env` and paste your key:
-     ```env
-     GROQ_API_KEY=your_groq_api_key_here
-     ```
-   - (Optional) For Google Gemini, get a key at https://aistudio.google.com
+Open `http://127.0.0.1:8000/` for the landing page and `http://127.0.0.1:8000/app` for the simulator.
 
-5. Run the application:
-```bash
-streamlit run ui/app.py --server.port 8510
+## Environment Variables
+
+StockAI can run without LLM keys, but richer chat and model-backed behavior depend on provider configuration.
+
+```env
+GROQ_API_KEY=your_groq_api_key_here
+GOOGLE_API_KEY=your_google_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+DEFAULT_MODEL_PROVIDER=groq
+HOST=127.0.0.1
+PORT=8000
 ```
 
-6. Open your browser at `http://localhost:8510`
+See `.env.example` for the project template.
 
-**Default LLM:** Llama 3.3 70B (free via Groq)
+## API Overview
 
-**Security:** Never share your `.env` file or API keys publicly. `.env` is gitignored by default.
+Current important routes:
 
-## 🚢 Deployment
+- `GET /` serves `frontend/landing.html`
+- `GET /app` serves `frontend/index.html`
+- `GET /health` returns status JSON
+- `GET /market/*` returns stock metadata, history, trades, and symbol detail
+- `GET` and `POST /simulation/*` control simulation state and snapshots
+- `GET` and `POST /agents/*` expose agent lists, analytics, decisions, explainability, and custom agent creation
+- `GET` and `POST /data/*` expose exports, events, forum items, reports, loans, and event injection
 
-### Streamlit Cloud (Recommended - Free)
+## Testing
 
-1. Push your code to GitHub
-2. Go to [share.streamlit.io](https://share.streamlit.io)
-3. Connect your repository
-4. Add secrets in the dashboard (Settings → Secrets):
-   ```toml
-   GROQ_API_KEY = "your_key"
-   GOOGLE_API_KEY = "your_key"
-   ```
-5. Deploy!
-
-### Docker
+Run the critical path suite with:
 
 ```bash
-# Build the image
+.\.venv\Scripts\python.exe -m pytest tests -q
+```
+
+The suite covers the current FastAPI behavior, including HTML responses for `/` and `/app`, the JSON health endpoint, and the main market, simulation, agents, and data routes.
+
+## Deployment
+
+The current deployed app is hosted on Render at:
+
+https://stockai-ver2-0.onrender.com/
+
+For Docker-based deployment:
+
+```bash
 docker build -t stockai .
-
-# Run the container
-docker run -p 8510:8510 --env-file .env stockai
+docker run -p 8000:8000 --env-file .env stockai
 ```
 
-### Manual Server Deployment
+## Architecture Docs
 
-```bash
-# Install on server
-pip install -r requirements.txt
+Editable Mermaid diagrams live in `docs/architecture.mmd` and `docs/workflow.mmd`.
 
-# Run with production settings
-streamlit run ui/app.py --server.port 8510 --server.address 0.0.0.0 --server.headless true
-```
-
-## 📁 Project Structure
-
-```
-StockAI/
-├── ui/
-│   ├── app.py              # Main Streamlit application
-│   ├── simulation_engine.py # Backend simulation logic
-│   └── favicon.svg         # Custom logo
-├── .streamlit/
-│   └── config.toml         # Streamlit configuration
-├── fig/                    # Architecture diagrams
-├── log/                    # Logging utilities
-├── prompt/                 # Agent prompts
-├── res/                    # Simulation results
-├── requirements.txt        # Python dependencies
-└── README.md
-```
-
-## 🎮 How to Use
-
-1. **Launch the App** - Start the Streamlit server
-2. **Read Guidelines** - Click "View Guidelines" to understand the platform
-3. **Configure Simulation** - Set parameters (agents, days, volatility, seed)
-4. **Run Simulation** - Click "Run Day" to advance trading days
-5. **Monitor Dashboard** - Watch real-time updates on Overview tab
-6. **Analyze Results** - Use the Analysis tab to compare agent strategies
-
-## 🔧 Configuration
-
-Edit `.streamlit/config.toml` to customize the theme:
-
-```toml
-[theme]
-primaryColor = "#10b981"
-backgroundColor = "#0a0a0f"
-secondaryBackgroundColor = "#16161d"
-textColor = "#fafafa"
-font = "sans serif"
-```
-
-## 📊 Agent Strategies
-
-| Strategy | Risk Level | Description |
-|----------|------------|-------------|
-| 🛡️ Conservative | Low | Prefers stable assets, uses stop-loss orders |
-| 🔥 Aggressive | High | Trades on momentum, uses leverage |
-| ⚖️ Balanced | Medium | Diversifies, follows fundamental analysis |
-| 🚀 Growth-Oriented | High | Focuses on high-growth opportunities |
-
-## 🧠 Behavioral Biases
-
-- **🐑 Herding** - Following crowd behavior
-- **😰 Loss Aversion** - Feeling losses more than gains
-- **😤 Overconfidence** - Overestimating abilities
-- **⚓ Anchoring** - Relying on initial information
-
-## 🛠️ Tech Stack
-
-- **Frontend**: Streamlit, Custom CSS (Glassmorphism)
-- **Charts**: Plotly
-- **Backend**: Python, Dataclasses
-- **Fonts**: Inter, JetBrains Mono
-
-## 📝 License
+## License
 
 This project is licensed under the MIT License.
-
-## 👥 Authors
-
-- Riyan Ozair
-- Nabeel Rizwan
-- Samiullah
-
-## 🙏 Acknowledgments
-
-Based on research from "When AI Meets Finance (StockAgent): Large Language Model-based Stock Trading in Simulated Real-world Environments"
-
-- **Reffernced Repository**: [MingyuJ666/Stockagent](https://github.com/MingyuJ666/Stockagent)
-- **Paper**: [arXiv:2407.18957](https://arxiv.org/pdf/2407.18957)
-
----
-
-<p align="center">
-  <b>StockAI</b> - Explore the future of AI-driven market simulation
-</p>
-
-

@@ -791,27 +791,51 @@ function buildTicker() {
 }
 
 // ── Mini candlestick chart ──
+let previewPrices = [100,104,102,108,105,112,109,115,111,118,114,120,116,122,119,125,121,128,124,130];
 function buildPreviewChart() {
-  const prices = [100,104,102,108,105,112,109,115,111,118,114,120,116,122,119,125,121,128,124,130];
   const chart = document.getElementById('preview-chart');
-  const maxP = Math.max(...prices), minP = Math.min(...prices);
+  const maxP = Math.max(...previewPrices), minP = Math.min(...previewPrices);
   const range = maxP - minP || 1;
   const h = 120;
-  chart.innerHTML = prices.map((p, i) => {
-    const prev = prices[i-1] ?? p;
+  chart.innerHTML = previewPrices.map((p, i) => {
+    const prev = previewPrices[i-1] ?? p;
     const up = p >= prev;
-    const bodyH = Math.max(4, Math.abs(p - prev) / range * h);
-    const bottom = (p - minP) / range * h;
-    const wickH = 8;
-    return `<div class="candle" style="height:${h}px">
-      <div class="wick" style="height:${wickH}px;background:${up?'#00c896':'#e0354b'};margin-bottom:0"></div>
-      <div class="body"  style="height:${bodyH}px;background:${up?'#00c896':'#e0354b'}"></div>
+    const open = prev, close = p;
+    const high = Math.max(open, close) + Math.random() * 2;
+    const low = Math.min(open, close) - Math.random() * 2;
+    const hi = Math.min(maxP, Math.max(minP, high));
+    const lo = Math.max(minP, Math.min(maxP, low));
+    const yHi = h - ((hi - minP) / range * h);
+    const yLo = h - ((lo - minP) / range * h);
+    const yOpen = h - ((open - minP) / range * h);
+    const yClose = h - ((close - minP) / range * h);
+    const bodyTop = Math.min(yOpen, yClose);
+    const bodyBot = Math.max(yOpen, yClose);
+    const bodyH = Math.max(4, bodyBot - bodyTop);
+    const wickTopH = Math.max(2, bodyTop - yHi);
+    const wickBotH = Math.max(2, yLo - bodyBot);
+    return `<div class="candle" style="height:${h}px;flex-direction:column;justify-content:flex-end;">
+      <div style="flex:0 0 ${yHi}px;"></div>
+      <div class="wick" style="height:${wickTopH}px;background:${up?'#00c896':'#e0354b'}"></div>
+      <div class="body" style="height:${bodyH}px;background:${up?'#00c896':'#e0354b'}"></div>
+      <div class="wick" style="height:${wickBotH}px;background:${up?'#00c896':'#e0354b'}"></div>
     </div>`;
   }).join('');
 }
 
+function updatePreviewChartLive() {
+  // Simulate a new price based on the last price
+  let last = previewPrices[previewPrices.length-1];
+  let change = (Math.random() - 0.5) * 4; // random walk
+  let next = Math.max(90, Math.min(140, last + change));
+  previewPrices.push(Math.round(next * 100) / 100);
+  if (previewPrices.length > 20) previewPrices.shift();
+  buildPreviewChart();
+}
+
 buildTicker();
 buildPreviewChart();
+setInterval(updatePreviewChartLive, 1000);
 </script>
 </body>
 </html>

@@ -1868,7 +1868,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
 
 <script>
 /* ═══════════════════════════════════════════
-   GLOBALS
+  GLOBALS
 ═══════════════════════════════════════════ */
 const API = window.location.origin;
 let ws = null;
@@ -2053,12 +2053,17 @@ function handleTick(d) {
   updateSidebar();
   updateMetrics();
 
+  // Debug: log tick data
+  console.log('[handleTick] d:', d);
+
   // Update stock prices from tick
   if (d.prices) {
     for (const sym of Object.keys(d.prices)) {
       if (allStocks[sym]) allStocks[sym].price = d.prices[sym];
     }
     pushPriceHistory(d.prices, d.day, d.session);
+    // Debug: log stockHistory after push
+    console.log('[handleTick] stockHistory:', JSON.parse(JSON.stringify(stockHistory)));
     refreshPriceChart();
   }
 
@@ -2352,6 +2357,10 @@ function refreshPriceChart() {
     });
     ci++;
   });
+
+  // Debug: log chart data
+  console.log('[refreshPriceChart] sortedLabels:', sortedLabels);
+  console.log('[refreshPriceChart] datasets:', datasets);
 
   if (chartInstances.priceChart) {
     chartInstances.priceChart.data.labels = sortedLabels;

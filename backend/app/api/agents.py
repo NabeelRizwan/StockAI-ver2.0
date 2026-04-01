@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 import backend.app.state as state
 from backend.app.state import STOCKS, ALL_SYMBOLS
 from backend.app.agents.behavioral_agent import BehavioralAgent, RuleBasedAgent, AGENT_PERSONAS
+from backend.app.agents.strategy_agent import StrategyAgent, build_strategy
 from backend.app.models.types import CustomAgentRequest
 from backend.app.core.analytics import compute_agent_metrics
 
@@ -40,7 +41,7 @@ async def get_analytics(agent_id: str):
 async def create_custom_agent(req: CustomAgentRequest):
     """Inject a user-defined agent into the running simulation."""
     initial_prices = {sym: (state.market_books[sym].last_price or STOCKS[sym].initial_price) for sym in STOCKS}
-    cash = 100_000.0
+    cash = float(req.initial_cash)
     holdings = {}
     chosen = random.sample(ALL_SYMBOLS, min(3, len(ALL_SYMBOLS)))
     for sym in chosen:
@@ -55,17 +56,45 @@ async def create_custom_agent(req: CustomAgentRequest):
         "risk_tolerance": req.risk_tolerance,
         "bias_profile": {},
     }
-    agent = BehavioralAgent(
-        agent_id=new_id,
-        persona=persona,
-        initial_cash=cash,
-        initial_holdings=holdings,
-        initial_prices=initial_prices,
-    )
+    agent_kind = (req.agent_kind or ("llm" if req.use_llm else "rule")).lower()
+    if agent_kind == "strategy" or req.strategy_id:
+        strategy_id = req.strategy_id or "mean_reversion"
+        agent = StrategyAgent(
+            agent_id=new_id,
+            name=req.name,
+            strategy=build_strategy(strategy_id, req.config),
+            strategy_id=strategy_id,
+            initial_cash=cash,
+            initial_holdings=holdings,
+            initial_prices=initial_prices,
+            dataset_version=state.simulation.dataset_version,
+            scenario_id=state.simulation.scenario_id,
+            universe_id=state.simulation.universe_id,
+            seed=getattr(state.simulation, "seed", None),
+            training_mode=state.simulation.training_mode,
+        )
+        agent.set_run_id(state.simulation.active_run_id or "ad-hoc")
+    elif agent_kind == "rule" or not req.use_llm:
+        agent = RuleBasedAgent(
+            agent_id=new_id,
+            character_type=req.character_type,
+            name=req.name,
+            initial_cash=cash,
+            initial_holdings=holdings,
+            initial_prices=initial_prices,
+        )
+    else:
+        agent = BehavioralAgent(
+            agent_id=new_id,
+            persona=persona,
+            initial_cash=cash,
+            initial_holdings=holdings,
+            initial_prices=initial_prices,
+        )
     state.agents.append(agent)
     state.simulation.agents.append(agent)
     logger.info(f"Custom agent created: {req.name} (id={new_id})")
-    return {"message": f"Agent '{req.name}' created", "id": new_id}
+    return {"message": f"Agent '{req.name}' created", "id": new_id, "agent_kind": agent.agent_kind}
 
 
 @router.get("/explainability")

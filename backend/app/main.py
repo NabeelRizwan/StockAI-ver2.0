@@ -17,7 +17,7 @@ logging.basicConfig(
 import backend.app.state  # noqa: F401
 
 # ── Import routers ──
-from backend.app.api import market, simulation, agents, chat, data, ws
+from backend.app.api import market, simulation, agents, chat, data, ws, live_market, research
 
 app = FastAPI(title="StockAI v2.0")
 
@@ -35,6 +35,8 @@ app.include_router(agents.router)
 app.include_router(chat.router)
 app.include_router(data.router)
 app.include_router(ws.router)
+app.include_router(live_market.router)
+app.include_router(research.router)
 
 
 # ── Serve Frontend ──
@@ -58,6 +60,32 @@ async def serve_landing():
 async def serve_frontend():
     return FileResponse(
         _FRONTEND_DIR / "index.html",
+        media_type="text/html",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
+
+
+@app.get("/workspace", response_class=FileResponse)
+async def serve_workspace():
+    return FileResponse(
+        _FRONTEND_DIR / "workspace.html",
+        media_type="text/html",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
+
+
+@app.get("/live-market", response_class=FileResponse)
+async def serve_live_market():
+    return FileResponse(
+        _FRONTEND_DIR / "live-market.html",
         media_type="text/html",
         headers={
             "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",

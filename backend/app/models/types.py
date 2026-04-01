@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional, Dict
+from typing import Any, List, Optional, Dict
 from pydantic import BaseModel, Field
 from datetime import datetime
 
@@ -85,6 +85,12 @@ class StockMeta(BaseModel):
     initial_price: float
     volatility_multiplier: float = 1.0
     emoji: str = "📈"
+    benchmark: str = "SPY"
+    liquidity_profile: str = "core"
+    market_cap_bucket: str = "large"
+    beta: float = 1.0
+    average_daily_volume_millions: float = 10.0
+    description: str = ""
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -220,6 +226,21 @@ class SimulationConfig(BaseModel):
     regime_sensitivity: float = Field(default=1.0, ge=0.5, le=2.0)
     benchmark_mode: str = "equal_weight"
     analytics_detail: str = "professional"
+    universe_id: str = "us-equities-core-v1"
+    dataset_version: str = "dataset-us-equities-core-v1"
+    scenario_id: str = "scenario-hybrid-baseline-v1"
+    experiment_id: str = "experiment-default-research-v1"
+    agent_population_id: str = "population-core-mixed-v1"
+    calendar_mode: str = "us_equities_cash"
+    session_model: str = "auction_continuous_close"
+    liquidity_model: str = "adaptive"
+    liquidity_regime: str = "core"
+    latency_ms: int = Field(default=120, ge=0, le=5000)
+    slippage_bps: float = Field(default=6.0, ge=0.0, le=200.0)
+    training_mode: str = "hybrid"
+    agent_mix: Dict[str, float] = Field(default_factory=lambda: {"llm": 0.35, "rule": 0.45, "strategy": 0.20})
+    config_snapshot_label: Optional[str] = None
+    notes: Dict[str, Any] = Field(default_factory=dict)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -253,3 +274,6 @@ class CustomAgentRequest(BaseModel):
     description: str = ""
     initial_cash: float = Field(default=100000, ge=10000, le=500000)
     use_llm: bool = False
+    agent_kind: str = "llm"
+    strategy_id: Optional[str] = None
+    config: Dict[str, Any] = Field(default_factory=dict)

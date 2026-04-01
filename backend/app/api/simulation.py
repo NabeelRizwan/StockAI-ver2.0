@@ -24,9 +24,20 @@ async def get_status():
         "is_paused": sim.is_paused,
         "day": sim.day,
         "session": sim.session,
+        "session_phase": getattr(sim, "session_phase", "pre_open"),
         "total_days": sim.total_days,
         "total_trades": sim.total_trade_count,
         "active_agents": sum(1 for a in state.agents if a.status == "active"),
+        "run_id": getattr(sim, "active_run_id", None),
+        "universe_id": getattr(sim, "universe_id", None),
+        "dataset_version": getattr(sim, "dataset_version", None),
+        "scenario_id": getattr(sim, "scenario_id", None),
+        "experiment_id": getattr(sim, "experiment_id", None),
+        "training_mode": getattr(sim, "training_mode", None),
+        "liquidity_model": getattr(sim, "liquidity_model", None),
+        "liquidity_regime": getattr(sim, "liquidity_regime", None),
+        "latency_ms": getattr(sim, "latency_ms", None),
+        "slippage_bps": getattr(sim, "slippage_bps", None),
         "stocks": {s: {"name": state.STOCKS[s].name, "price": prices[s]} for s in state.STOCKS},
         "market_analytics": analytics,
         "regime": analytics["regime"],
@@ -62,6 +73,7 @@ async def pause_simulation():
 
 @router.post("/stop")
 async def stop_simulation():
+    state.simulation._run_stop_reason = "stopped"
     state.simulation.is_running = False
     state.simulation.is_paused = False
     return {"message": "Simulation stopped"}

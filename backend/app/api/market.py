@@ -17,6 +17,12 @@ async def get_all_stocks():
             "emoji": meta.emoji,
             "initial_price": meta.initial_price,
             "volatility": meta.volatility_multiplier,
+            "benchmark": meta.benchmark,
+            "liquidity_profile": meta.liquidity_profile,
+            "market_cap_bucket": meta.market_cap_bucket,
+            "beta": meta.beta,
+            "average_daily_volume_millions": meta.average_daily_volume_millions,
+            "description": meta.description,
             "price": state.market_books[sym].last_price or meta.initial_price,
         }
         for sym, meta in STOCKS.items()
@@ -66,6 +72,8 @@ async def get_market_state(symbol: str):
         "name": meta.name if meta else symbol,
         "sector": meta.sector if meta else "",
         "emoji": meta.emoji if meta else "📈",
+        "benchmark": meta.benchmark if meta else "SPY",
+        "liquidity_profile": meta.liquidity_profile if meta else "core",
         "bids": depth["bids"],
         "asks": depth["asks"],
         "last_price": book.last_price,

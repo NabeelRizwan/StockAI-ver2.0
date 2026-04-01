@@ -3,7 +3,7 @@ import time
 import uuid
 from datetime import datetime
 from typing import List, Tuple, Optional
-from backend.app.models.types import Order, OrderSide, Trade, OrderStatus, MarketDepth
+from backend.app.models.types import Order, OrderSide, OrderType, Trade, OrderStatus, MarketDepth
 
 class OrderBook:
     def __init__(self, symbol: str):
@@ -30,8 +30,8 @@ class OrderBook:
         skipped = []
         while order.quantity > order.filled_quantity and self.asks:
             best_ask_price, _, _, best_ask = self.asks[0]
-            
-            if order.price < best_ask_price: # Limit not met
+
+            if order.type != OrderType.MARKET and order.price < best_ask_price: # Limit not met
                 break
 
             # Skip self-trades
@@ -50,7 +50,7 @@ class OrderBook:
         for entry in skipped:
             heapq.heappush(self.asks, entry)
 
-        if order.quantity > order.filled_quantity:
+        if order.type != OrderType.MARKET and order.quantity > order.filled_quantity:
             # Push with negative price for Max-Heap, seq as tiebreaker
             self._seq += 1
             ts = (order.timestamp or datetime.now()).timestamp()
@@ -64,8 +64,8 @@ class OrderBook:
         while order.quantity > order.filled_quantity and self.bids:
             neg_best_bid_price, _, _, best_bid = self.bids[0]
             best_bid_price = -neg_best_bid_price
-            
-            if order.price > best_bid_price: # Limit not met
+
+            if order.type != OrderType.MARKET and order.price > best_bid_price: # Limit not met
                 break
 
             # Skip self-trades
@@ -84,7 +84,7 @@ class OrderBook:
         for entry in skipped:
             heapq.heappush(self.bids, entry)
 
-        if order.quantity > order.filled_quantity:
+        if order.type != OrderType.MARKET and order.quantity > order.filled_quantity:
             self._seq += 1
             ts = (order.timestamp or datetime.now()).timestamp()
             heapq.heappush(self.asks, (order.price, ts, self._seq, order))

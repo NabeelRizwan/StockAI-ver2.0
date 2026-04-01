@@ -352,6 +352,160 @@ nav {
   line-height: 1.7;
 }
 
+/* —— LIVE MARKET SECTION —— */
+.reality-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.reality-panel {
+  border: 2px solid var(--border);
+  background: var(--surface);
+  padding: 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+.reality-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(0,229,204,.08), transparent 40%),
+    linear-gradient(315deg, rgba(224,64,200,.08), transparent 48%);
+  pointer-events: none;
+}
+
+.reality-content,
+.reality-surface {
+  position: relative;
+  z-index: 1;
+}
+
+.reality-title {
+  font-family: var(--mono);
+  font-size: clamp(28px, 4.5vw, 48px);
+  line-height: 1.05;
+  letter-spacing: -1.5px;
+  margin-bottom: 16px;
+}
+
+.reality-copy {
+  color: #8b8b8b;
+  font-size: 16px;
+  line-height: 1.8;
+  max-width: 620px;
+}
+
+.reality-copy strong { color: var(--text); }
+
+.section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.signal-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.signal-card {
+  border: 1px solid var(--border);
+  background: #0d0d0d;
+  padding: 18px 16px;
+}
+
+.signal-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.signal-value {
+  font-family: var(--mono);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.signal-copy {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #777;
+}
+
+.reality-surface {
+  display: grid;
+  gap: 14px;
+}
+
+.surface-card {
+  border: 2px solid var(--border);
+  background: #0d0d0d;
+  padding: 20px;
+}
+
+.surface-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.surface-title {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+
+.surface-live {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--lime);
+}
+
+.surface-list {
+  display: grid;
+  gap: 10px;
+}
+
+.surface-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid #181818;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.surface-row:first-child { border-top: 0; padding-top: 0; }
+
+.surface-row strong { color: var(--text); }
+
+.surface-positive { color: var(--lime); }
+.surface-negative { color: var(--red); }
+
+.surface-brief {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #8a8a8a;
+}
+
 /* ── STATS ── */
 .stats-row {
   display: grid;
@@ -584,6 +738,13 @@ footer {
   width: 8px;
   border-radius: 1px;
 }
+
+@media (max-width: 900px) {
+  .reality-grid,
+  .signal-strip {
+    grid-template-columns: 1fr;
+  }
+}
 </style>
 </head>
 <body>
@@ -615,9 +776,12 @@ footer {
   <div class="hero-version">VERSION 2.0</div>
   <p class="hero-sub">
     A <strong>fully autonomous stock market simulator</strong> powered by large language models.
-    Watch AI agents trade, react to news, form opinions, and compete — in real time.
+    Watch AI agents trade, react to news, form opinions, and compete — in real time. Now paired with a
+    <strong>persistent research workspace</strong> for datasets, scenarios, bots, and experiment comparison.
   </p>
   <div class="hero-buttons">
+    <a class="btn-secondary" href="/workspace">Research Workspace</a>
+    <a class="btn-secondary" href="/live-market">Live Market Intelligence</a>
     <a class="btn-primary" href="/app">▶ Launch Simulator</a>
     <a class="btn-secondary" href="#features">Explore Features</a>
   </div>
@@ -632,6 +796,83 @@ footer {
       <span style="margin-left:auto;color:var(--lime)">● LIVE</span>
     </div>
     <div class="preview-chart" id="preview-chart"></div>
+  </div>
+</section>
+
+<!-- LIVE MARKET SECTION -->
+<section class="section">
+  <div class="section-label">New Reality Layer</div>
+  <div class="reality-grid">
+    <div class="reality-panel">
+      <div class="reality-content">
+        <h2 class="reality-title">Step out of simulation mode.<br>Read the actual tape.</h2>
+        <p class="reality-copy">
+          StockAI now includes a <strong>real-market intelligence layer</strong> that tracks broad-market proxies,
+          sector pulse, momentum leaders, watchlist charts, and an AI brief that compares live conditions with
+          the simulator's current regime.
+        </p>
+
+        <div class="signal-strip">
+          <div class="signal-card">
+            <div class="signal-label">Market Snapshot</div>
+            <div class="signal-value" style="color:var(--lime)">5</div>
+            <div class="signal-copy">Headline proxy cards for index tone, volatility pressure, and timestamped freshness.</div>
+          </div>
+          <div class="signal-card">
+            <div class="signal-label">Sector Pulse</div>
+            <div class="signal-value" style="color:var(--cyan)">6</div>
+            <div class="signal-copy">ETF-based sector heat so leadership and weakness are readable at a glance.</div>
+          </div>
+          <div class="signal-card">
+            <div class="signal-label">AI Brief</div>
+            <div class="signal-value" style="color:var(--magenta)">LIVE</div>
+            <div class="signal-copy">Opportunities, risks, and direct comparison against StockAI's synthetic market.</div>
+          </div>
+        </div>
+
+        <div class="section-actions">
+          <a class="btn-secondary" href="/workspace">Open Research Workspace</a>
+          <a class="btn-primary" href="/live-market">Open Live Market</a>
+          <a class="btn-secondary" href="/app">Pair It With the Simulator</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="reality-surface">
+      <div class="surface-card">
+        <div class="surface-head">
+          <div class="surface-title">Tracked Tape Preview</div>
+          <div class="surface-live">LIVE</div>
+        </div>
+        <div class="surface-list">
+          <div class="surface-row">
+            <strong>S&P 500</strong>
+            <span>SPY</span>
+            <span class="surface-positive">+0.84%</span>
+          </div>
+          <div class="surface-row">
+            <strong>Technology</strong>
+            <span>XLK</span>
+            <span class="surface-positive">+1.42%</span>
+          </div>
+          <div class="surface-row">
+            <strong>Volatility</strong>
+            <span>VIX</span>
+            <span class="surface-negative">+2.11%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="surface-card">
+        <div class="surface-head">
+          <div class="surface-title">Why It Matters</div>
+        </div>
+        <p class="surface-brief">
+          The simulator teaches market behavior. The live-market page shows how that behavior lines up with
+          the outside world right now — using a free source, graceful caching, and native StockAI presentation.
+        </p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -726,7 +967,7 @@ footer {
     <div class="step">
       <div class="step-num">02</div>
       <div class="step-title">Simulate</div>
-      <p class="step-desc">Each day runs 3 trading sessions. Agents receive market events and LLM reasoning kicks in.</p>
+      <p class="step-desc">Each day now runs phased market sessions — pre-open, auction, continuous trading, and close. Agents receive events, microstructure shifts, and execution constraints.</p>
     </div>
     <div class="step">
       <div class="step-num">03</div>
@@ -747,7 +988,7 @@ footer {
       <span class="t-key">day</span>: <span class="t-num">7</span> &nbsp;&nbsp;<span class="t-key">session</span>: <span class="t-num">2</span><br>
       <span class="t-key">event</span>: <span class="t-str">"Interest Rate Decision — HIGH severity"</span><br>
       <span class="t-key">reasoning</span>: <span class="t-str">"Rate hike signals contraction. Rotating to defensive stocks."</span><br>
-      <span class="t-key">action</span>: <span class="t-val">SELL</span> &nbsp;<span class="t-key">stock</span>: <span class="t-str">"A"</span> &nbsp;<span class="t-key">qty</span>: <span class="t-num">42</span> &nbsp;<span class="t-key">price</span>: <span class="t-str">$148.30</span><br>
+      <span class="t-key">action</span>: <span class="t-val">SELL</span> &nbsp;<span class="t-key">stock</span>: <span class="t-str">"AAPL"</span> &nbsp;<span class="t-key">qty</span>: <span class="t-num">42</span> &nbsp;<span class="t-key">price</span>: <span class="t-str">$189.30</span><br>
       <span class="t-key">portfolio_value</span>: <span class="t-val">$112,840</span> &nbsp;<span class="t-key">gain</span>: <span class="t-val">+12.8%</span>
     </code>
   </div>

@@ -19,7 +19,7 @@ async def broadcast(data: dict):
         return
     payload = json.dumps(data, default=str)
     disconnected = set()
-    for ws in _clients:
+    for ws in list(_clients):
         try:
             await ws.send_text(payload)
         except Exception as e:

@@ -25,7 +25,14 @@ async def export_data():
             "regime_sensitivity": state.simulation.regime_sensitivity,
             "benchmark_mode": state.simulation.benchmark_mode,
             "analytics_detail": state.simulation.analytics_detail,
+            "dataset_version": getattr(state.simulation, "dataset_version", None),
+            "scenario_id": getattr(state.simulation, "scenario_id", None),
+            "experiment_id": getattr(state.simulation, "experiment_id", None),
+            "training_mode": getattr(state.simulation, "training_mode", None),
+            "latency_ms": getattr(state.simulation, "latency_ms", None),
+            "slippage_bps": getattr(state.simulation, "slippage_bps", None),
         },
+        "run": state.research_store.get_record("runs", getattr(state.simulation, "active_run_id", "")) if getattr(state.simulation, "active_run_id", None) else None,
         "stocks": {s: {"name": m.name, "sector": m.sector, "price": prices[s]} for s, m in STOCKS.items()},
         "agents": [a.get_snapshot(prices) for a in state.agents],
         "agent_risk_snapshots": [compute_agent_metrics(a, state.simulation, prices, STOCKS) for a in state.agents],
@@ -55,6 +62,7 @@ async def export_data():
         "sector_index_history": state.simulation.sector_index_history,
         "market_analytics": market_analytics,
         "market_metrics_history": state.simulation.market_metrics_history,
+        "run_events": state.research_store.list_run_events(state.simulation.active_run_id) if getattr(state.simulation, "active_run_id", None) else [],
         "loans": [
             {
                 "id": l.id, "agent_id": l.agent_id, "amount": l.amount,

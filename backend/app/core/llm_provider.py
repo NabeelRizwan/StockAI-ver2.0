@@ -87,7 +87,7 @@ class MockProvider(LLMProvider):
         # Return a random valid JSON action for testing without API keys
         import random
         actions = ["buy", "sell", "hold"]
-        stocks = ["A", "B"]
+        stocks = ["AAPL", "MSFT", "NVDA", "JPM", "XOM"]
         action = random.choice(actions)
         return json.dumps({
             "action": action,

@@ -4,25 +4,31 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-API-009688.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-StockAI v2.0 is an interactive AI stock market simulator with a FastAPI backend and a static HTML frontend. It lets you launch a browser-based simulation, watch autonomous agents trade, inspect live market state, review agent decisions, and export simulation data.
+StockAI v2.0 is a local-first research platform for hybrid synthetic US equities market simulation. It combines a FastAPI backend with static HTML frontends for the landing page, research workspace, simulator console, and live-market intelligence layer. Researchers and bot builders can configure persistent runs, inspect agent behavior, evaluate strategy bots, compare experiments, and export research data.
 
 Live deployment: https://stockai-ver2-0.onrender.com/
 
 ## What Is Deployed
 
 - A landing page at `/`
+- A research workspace at `/workspace`
 - A simulator dashboard at `/app`
+- A live-market intelligence surface at `/live-market`
 - A FastAPI backend serving market, simulation, agents, chat, data, and websocket routes
-- Live simulation state including stocks, agents, trades, events, forum activity, loans, and financial reports
+- Research APIs for runs, scenarios, experiments, datasets, bots, evaluations, jobs, and run-scoped event streams
+- Live simulation state including stocks, agents, trades, events, forum activity, loans, financial reports, and persistent run events
 - Optional LLM-backed features through provider keys configured in `.env`
 
 ## Features
 
-- Multi-agent market simulation with rule-based and LLM-capable agents
-- Live stock prices, recent trades, market depth, and price history
-- Simulation lifecycle controls for start, pause, stop, reset, config updates, and extension
-- Agent analytics, explainability summaries, decision logs, and custom agent creation
-- Exportable structured data for downstream analysis
+- Multi-agent market simulation with LLM, deterministic, and Python strategy-SDK agents
+- Persistent run, scenario, dataset, experiment, bot, evaluation, and job records backed by SQLite
+- Session-phase aware market kernel with latency, slippage, market orders, partial fills, and queue-priority matching
+- Live stock prices, recent trades, market depth, price history, and run-scoped event tape
+- Research workspace for dataset/scenario/bot discovery and experiment comparison
+- Simulation lifecycle controls for start, pause, stop, reset, config updates, extension, and run launch
+- Agent analytics, explainability summaries, decision logs, custom agent creation, and strategy-bot evaluation
+- Exportable structured data for downstream analysis and research bundles
 - Static frontend served directly from the FastAPI app for simpler deployment
 
 ## Tech Stack
@@ -46,6 +52,8 @@ StockAI/
 |   `-- run.py                # Local Uvicorn entry point
 |-- frontend/
 |   |-- landing.html          # Landing page served at /
+|   |-- workspace.html        # Research workspace served at /workspace
+|   |-- live-market.html      # Live-market intelligence layer
 |   `-- index.html            # Simulator UI served at /app
 |-- docs/                     # Architecture and workflow diagrams
 |-- tests/                    # Critical path API tests
@@ -68,7 +76,12 @@ pip install -r requirements.txt
 python backend/run.py
 ```
 
-Open `http://127.0.0.1:8000/` for the landing page and `http://127.0.0.1:8000/app` for the simulator.
+Open:
+
+- `http://127.0.0.1:8000/` for the landing page
+- `http://127.0.0.1:8000/workspace` for the research workspace
+- `http://127.0.0.1:8000/app` for the simulation console
+- `http://127.0.0.1:8000/live-market` for the live-market intelligence layer
 
 ## Environment Variables
 
@@ -90,12 +103,16 @@ See `.env.example` for the project template.
 Current important routes:
 
 - `GET /` serves `frontend/landing.html`
+- `GET /workspace` serves `frontend/workspace.html`
 - `GET /app` serves `frontend/index.html`
+- `GET /live-market` serves `frontend/live-market.html`
 - `GET /health` returns status JSON
 - `GET /market/*` returns stock metadata, history, trades, and symbol detail
 - `GET` and `POST /simulation/*` control simulation state and snapshots
 - `GET` and `POST /agents/*` expose agent lists, analytics, decisions, explainability, and custom agent creation
 - `GET` and `POST /data/*` expose exports, events, forum items, reports, loans, and event injection
+- `GET` and `POST /runs`, `/experiments`, `/scenarios`, `/bots`, `/evaluations`, `/datasets` expose the research platform resources
+- `GET /runs/{run_id}/events` and `GET /runs/{run_id}/stream` expose run-scoped event feeds
 
 ## Testing
 
@@ -105,7 +122,7 @@ Run the critical path suite with:
 .\.venv\Scripts\python.exe -m pytest tests -q
 ```
 
-The suite covers the current FastAPI behavior, including HTML responses for `/` and `/app`, the JSON health endpoint, and the main market, simulation, agents, and data routes.
+The suite covers the current FastAPI behavior, including the landing, workspace, simulator, and live-market HTML responses, the JSON health endpoint, the main market/simulation/agents/data routes, the research resource routes, calibration, evaluation, and execution-kernel behaviors.
 
 ## Deployment
 

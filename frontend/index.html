@@ -1182,6 +1182,12 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
       <div class="day-label">
         <span id="sb-session">—</span> &nbsp;|&nbsp; Trades: <span id="sb-trades">0</span>
       </div>
+      <div class="day-label">
+        Phase: <span id="sb-phase">—</span>
+      </div>
+      <div class="day-label" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+        Run: <span id="sb-run">—</span>
+      </div>
       <div class="progress-bar-wrap">
         <div class="progress-bar" id="sb-progress" style="width:0%"></div>
       </div>
@@ -1217,6 +1223,14 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
       </a>
       <a class="nav-link" data-page="settings" onclick="nav('settings')">
         <span class="nav-icon">≡</span> Settings
+      </a>
+    </nav>
+    <nav class="sidebar-nav" style="margin-top:-10px">
+      <a class="nav-link" href="/workspace">
+        <span class="nav-icon">▣</span> Workspace
+      </a>
+      <a class="nav-link" href="/live-market">
+        <span class="nav-icon">◌</span> Live Market
       </a>
     </nav>
 
@@ -1357,6 +1371,17 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
           <div class="card magenta">
             <div class="card-title">Agent Forum</div>
             <div class="feed" id="forum-feed"></div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:16px">
+          <div class="card cyan">
+            <div class="card-title">Active Run Context</div>
+            <div id="run-context-panel" style="font-family:var(--mono);font-size:12px;line-height:1.8;color:var(--white)">Waiting for run metadata…</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Execution Tape</div>
+            <div class="feed" id="run-events-feed"></div>
           </div>
         </div>
 
@@ -1850,7 +1875,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
             </div>
             <div class="form-row">
               <label>Affected Stocks (comma-separated symbols, blank = all)</label>
-              <input type="text" id="ev-stocks" placeholder="A, B, C …" />
+              <input type="text" id="ev-stocks" placeholder="AAPL, MSFT, NVDA …" />
             </div>
             <button class="btn btn-magenta" onclick="injectEvent()" style="margin-top:4px">Inject Event</button>
           </div>
@@ -1993,9 +2018,12 @@ let agentAnalyticsCache = {};
 let selectedAgent = null;
 let snapshotList = [];
 let activeReportTab = null;
-let visibleStocks = new Set(['A', 'B', 'C', 'D', 'E']); // default: first 5 tech
+let visibleStocks = new Set(['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL']); // default: research core
 let selectedForCompare = new Set(); // agent IDs selected for comparison
 let priceAlerts = [];               // { sym, dir, target, id }
+let runEvents = [];
+let lastRunEventSeq = 0;
+let activeRunId = null;
 
 /* ═══════════════════════════════════════════
    NAVIGATION
@@ -2145,6 +2173,7 @@ function startPoll() {
 async function pollStatus() {
   const s = await apiFetch('/simulation/status');
   if (s) handleStatus(s);
+  if (s && s.run_id) loadRunEvents();
   const t = await apiFetch('/market/trades');
   if (t) renderTrades(t.slice(-20).reverse());
 }
@@ -2153,8 +2182,7 @@ function reconnectWS() { connectWS(); toast('Reconnecting WebSocket…', 'var(--
 
 function handleTick(d) {
   // Update sidebar
-  state.day = d.day; state.session = d.session;
-  state.total_trades = d.trades; state.active_agents = d.agents;
+  state = { ...state, ...d, total_trades: d.trades, active_agents: d.agents };
   halted = d.halted || [];
   if (d.regime) {
     marketAnalytics = marketAnalytics || {};
@@ -2166,6 +2194,7 @@ function handleTick(d) {
   }
   updateSidebar();
   updateMetrics();
+  if (d.run_id) loadRunEvents();
 
   // Debug: log tick data
   console.log('[handleTick] d:', d);
@@ -2214,10 +2243,16 @@ function pushPriceHistory(prices, day, session) {
    STATUS + SIDEBAR
 ═══════════════════════════════════════════ */
 function handleStatus(s) {
+  if (s.run_id && s.run_id !== activeRunId) {
+    activeRunId = s.run_id;
+    runEvents = [];
+    lastRunEventSeq = 0;
+  }
   state = { ...state, ...s };
   marketAnalytics = s.market_analytics || marketAnalytics;
   updateSidebar();
   updateMetrics();
+  renderRunContext();
 }
 
 function updateSidebar() {
@@ -2232,6 +2267,8 @@ function updateSidebar() {
   document.getElementById('sb-day').textContent = state.day ? `DAY ${state.day}` : 'DAY —';
   const sess = state.session !== undefined ? `Session ${state.session}` : '—';
   document.getElementById('sb-session').textContent = sess;
+  document.getElementById('sb-phase').textContent = state.session_phase ? String(state.session_phase).replace(/_/g, ' ') : '—';
+  document.getElementById('sb-run').textContent = state.run_id ? String(state.run_id).slice(-12) : '—';
   document.getElementById('sb-trades').textContent = state.total_trades || 0;
 
   const pct = configuredDays ? (state.day / configuredDays * 100) : 0;
@@ -2270,6 +2307,58 @@ function updateMetrics() {
   document.getElementById('m-drawdown').textContent = benchmark.drawdown_pct != null ? `${benchmark.drawdown_pct.toFixed(2)}%` : '—';
   document.getElementById('m-turnover').textContent = marketAnalytics.turnover != null ? `${(marketAnalytics.turnover * 100).toFixed(1)}%` : '—';
   document.getElementById('m-sentiment').textContent = marketAnalytics.market_sentiment || 'market sentiment';
+  renderRunContext();
+}
+
+function renderRunContext() {
+  const panel = document.getElementById('run-context-panel');
+  if (!panel) return;
+  panel.innerHTML = `
+    <div><span style="color:var(--muted)">Run ID:</span> <strong style="color:var(--cyan)">${escHtml(state.run_id || '—')}</strong></div>
+    <div><span style="color:var(--muted)">Phase:</span> ${escHtml((state.session_phase || '—').replace(/_/g, ' '))}</div>
+    <div><span style="color:var(--muted)">Dataset:</span> ${escHtml(state.dataset_version || '—')}</div>
+    <div><span style="color:var(--muted)">Scenario:</span> ${escHtml(state.scenario_id || '—')}</div>
+    <div><span style="color:var(--muted)">Training:</span> ${escHtml((state.training_mode || 'hybrid').toUpperCase())}</div>
+    <div><span style="color:var(--muted)">Liquidity:</span> ${escHtml(state.liquidity_model || '—')} / ${escHtml(state.liquidity_regime || '—')}</div>
+    <div><span style="color:var(--muted)">Execution:</span> ${state.latency_ms != null ? `${state.latency_ms}ms` : '—'} latency / ${state.slippage_bps != null ? Number(state.slippage_bps).toFixed(2) : '—'}bps</div>
+    <div><span style="color:var(--muted)">Regime Link:</span> ${escHtml(marketAnalytics?.scenario || 'Waiting for scenario analytics…')}</div>`;
+}
+
+function renderRunEvents() {
+  const feed = document.getElementById('run-events-feed');
+  if (!feed) return;
+  if (!runEvents.length) {
+    feed.innerHTML = '<div class="empty">Run-scoped execution events will appear here.</div>';
+    return;
+  }
+  feed.innerHTML = [...runEvents].slice(-18).reverse().map(evt => {
+    const payload = evt.payload || {};
+    const headline = payload.title || payload.symbol || payload.order_id || payload.trade_id || evt.event_type;
+    const meta = payload.price != null ? ` @ ${fmtMoney(payload.price)}` : (payload.move_pct != null ? ` · ${payload.move_pct}%` : '');
+    return `<div class="feed-item">
+      <div class="feed-item-header">
+        <span class="badge sev-${(payload.severity || evt.event_type || 'low').toLowerCase().replace(/[^a-z]/g,'') || 'low'}">${escHtml((evt.event_type || 'event').replace(/_/g,' '))}</span>
+        <span class="feed-item-name">${escHtml(headline)}</span>
+        <span class="feed-item-day">#${evt.sequence}</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">${escHtml((evt.phase || 'phase').replace(/_/g,' '))}${escHtml(meta)}</div>
+    </div>`;
+  }).join('');
+}
+
+async function loadRunEvents() {
+  if (!state.run_id) return;
+  const rows = await apiFetch(`/runs/${state.run_id}/events?after_sequence=${lastRunEventSeq}`);
+  if (!rows || !rows.length) {
+    renderRunEvents();
+    return;
+  }
+  rows.forEach(evt => {
+    runEvents.push(evt);
+    lastRunEventSeq = Math.max(lastRunEventSeq, evt.sequence || 0);
+  });
+  if (runEvents.length > 120) runEvents = runEvents.slice(-120);
+  renderRunEvents();
 }
 
 /* ═══════════════════════════════════════════
@@ -2731,17 +2820,23 @@ function renderScenarioPanel() {
     <div><span style="color:var(--muted)">Regime:</span> <strong style="color:var(--lime)">${escHtml((marketAnalytics.regime || 'n/a').replace(/_/g, ' '))}</strong></div>
     <div><span style="color:var(--muted)">Scenario:</span> ${escHtml(marketAnalytics.scenario || '—')}</div>
     <div><span style="color:var(--muted)">Benchmark:</span> ${marketAnalytics.benchmark?.return_pct >= 0 ? '+' : ''}${(marketAnalytics.benchmark?.return_pct || 0).toFixed(2)}%</div>
-    <div><span style="color:var(--muted)">Sentiment:</span> ${escHtml(marketAnalytics.market_sentiment || 'neutral')}</div>`;
+    <div><span style="color:var(--muted)">Sentiment:</span> ${escHtml(marketAnalytics.market_sentiment || 'neutral')}</div>
+    <div><span style="color:var(--muted)">Run:</span> ${escHtml(state.run_id || '—')}</div>
+    <div><span style="color:var(--muted)">Phase:</span> ${escHtml((state.session_phase || '—').replace(/_/g, ' '))}</div>`;
   document.getElementById('sector-leadership').innerHTML = `
     <div><span style="color:var(--muted)">Leader:</span> <strong style="color:var(--cyan)">${leader ? `${leader[0]} (${(leader[1] - 100).toFixed(2)}%)` : '—'}</strong></div>
     <div><span style="color:var(--muted)">Laggard:</span> <strong style="color:var(--red)">${laggard ? `${laggard[0]} (${(laggard[1] - 100).toFixed(2)}%)` : '—'}</strong></div>
     <div><span style="color:var(--muted)">Breadth:</span> ${breadthPct}%</div>
-    <div><span style="color:var(--muted)">Dispersion:</span> ${((marketAnalytics.breadth?.dispersion || 0) * 100).toFixed(2)}%</div>`;
+    <div><span style="color:var(--muted)">Dispersion:</span> ${((marketAnalytics.breadth?.dispersion || 0) * 100).toFixed(2)}%</div>
+    <div><span style="color:var(--muted)">Dataset:</span> ${escHtml(state.dataset_version || '—')}</div>
+    <div><span style="color:var(--muted)">Scenario ID:</span> ${escHtml(state.scenario_id || '—')}</div>`;
   document.getElementById('risk-decomposition').innerHTML = `
     <div><span style="color:var(--muted)">Realized Vol:</span> <strong style="color:var(--yellow)">${(marketAnalytics.realized_vol_pct || 0).toFixed(2)}%</strong></div>
     <div><span style="color:var(--muted)">Drawdown:</span> ${(marketAnalytics.benchmark?.drawdown_pct || 0).toFixed(2)}%</div>
     <div><span style="color:var(--muted)">Turnover:</span> ${((marketAnalytics.turnover || 0) * 100).toFixed(2)}%</div>
-    <div><span style="color:var(--muted)">Session Risk:</span> ${escHtml(marketAnalytics.session_risk || 'Normal')}</div>`;
+    <div><span style="color:var(--muted)">Session Risk:</span> ${escHtml(marketAnalytics.session_risk || 'Normal')}</div>
+    <div><span style="color:var(--muted)">Execution:</span> ${state.latency_ms != null ? `${state.latency_ms}ms` : '—'} / ${state.slippage_bps != null ? Number(state.slippage_bps).toFixed(2) : '—'}bps</div>
+    <div><span style="color:var(--muted)">Liquidity:</span> ${escHtml(state.liquidity_model || '—')} / ${escHtml(state.liquidity_regime || '—')}</div>`;
 }
 
 function renderStocksTable() {
@@ -4264,9 +4359,9 @@ function checkPriceAlerts(prices) {
 const EVENT_TEMPLATES = {
   'market-crash':     { title: 'Market Crash', description: 'Panic selling erupts as confidence collapses.', severity: 'high',   impact: -18, stocks: '' },
   'bull-run':         { title: 'Bull Run',     description: 'Euphoric buying wave sweeps the market upward.', severity: 'medium', impact:  15, stocks: '' },
-  'earnings-beat':    { title: 'Earnings Beat (Tech)', description: 'Major tech firms report record profits.', severity: 'medium', impact:  12, stocks: 'A,B,C,D,E' },
+  'earnings-beat':    { title: 'Earnings Beat (Tech)', description: 'Major tech firms report record profits.', severity: 'medium', impact:  12, stocks: 'AAPL,MSFT,NVDA,AMZN,GOOGL' },
   'flash-crash':      { title: 'Flash Crash',  description: 'Algorithmic cascade triggers instant sell-off.', severity: 'high',   impact: -30, stocks: '' },
-  'sector-rotation':  { title: 'Sector Rotation', description: 'Funds rotate from tech into energy.', severity: 'medium', impact: -8, stocks: 'A,B,C,D,E' },
+  'sector-rotation':  { title: 'Sector Rotation', description: 'Funds rotate from tech into energy.', severity: 'medium', impact: -8, stocks: 'AAPL,MSFT,NVDA,AMZN,GOOGL' },
   'bear-trap':        { title: 'Bear Trap',    description: 'False breakdown reverses into powerful rally.', severity: 'medium', impact:  8, stocks: '' },
 };
 

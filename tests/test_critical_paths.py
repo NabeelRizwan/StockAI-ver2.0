@@ -33,6 +33,11 @@ class TestHealth:
         assert r.status_code == 200
         assert "text/html" in r.headers["content-type"]
 
+    def test_live_market_page_served(self):
+        r = client.get("/live-market")
+        assert r.status_code == 200
+        assert "text/html" in r.headers["content-type"]
+
 
 # â”€â”€â”€ Market â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -204,6 +209,72 @@ class TestData:
             assert key in data, f"missing export key: {key}"
         for key in ("benchmark_history", "regime_history", "market_analytics", "agent_risk_snapshots"):
             assert key in data, f"missing enhanced export key: {key}"
+
+
+class TestLiveMarket:
+    def test_live_market_snapshot_shape(self, monkeypatch):
+        from backend.app.api import live_market as live_market_api
+
+        async def fake_snapshot(force_refresh: bool = False):
+            return {
+                "provider_name": "Yahoo Finance",
+                "provider_status": "live",
+                "provider_note": "Mocked live provider.",
+                "generated_at": "2026-04-01T12:00:00+00:00",
+                "last_successful_at": "2026-04-01T12:00:00+00:00",
+                "cache_age_seconds": 0,
+                "is_stale": False,
+                "warnings": [],
+                "tracked_scope_note": "Tracked movers only.",
+                "market_snapshot": [{"symbol": "SPY", "label": "S&P 500", "price": 510.2, "change": 4.2, "change_pct": 0.83, "kind": "index", "exchange": "NYSE", "market_time": 1711972800}],
+                "sector_pulse": [{"symbol": "XLK", "label": "Technology", "change_pct": 1.2, "price": 220.4, "momentum": "accelerating"}],
+                "major_movers": {
+                    "leaders": [{"symbol": "NVDA", "name": "NVIDIA", "price": 912.0, "change": 22.0, "change_pct": 2.47, "market_time": 1711972800}],
+                    "laggards": [{"symbol": "TSLA", "name": "Tesla", "price": 171.0, "change": -4.5, "change_pct": -2.56, "market_time": 1711972800}],
+                },
+                "watchlist": [{"symbol": "AAPL", "name": "Apple", "price": 192.4, "change": 1.1, "change_pct": 0.58, "day_low": 189.1, "day_high": 193.0, "market_time": 1711972800, "exchange": "NasdaqGS", "sparkline": [189.1, 190.2, 191.7, 192.4]}],
+                "simulator_context": {"day": 4, "session": 2, "total_trades": 88, "regime": "bull_market", "scenario": "Risk-on tape", "benchmark_return_pct": 6.4, "realized_vol_pct": 12.1, "breadth_ratio": 68.0, "market_sentiment": 0.74, "session_risk": 0.33, "sector_leader": {"label": "Tech", "index": 107.2}, "sector_laggard": {"label": "Retail", "index": 98.1}},
+                "ai_brief": {"sentiment": "risk-on", "headline": "Risk appetite is pushing the tape higher", "summary": "Mocked brief.", "opportunities": [{"title": "NVDA is the velocity leader", "detail": "Still pressing higher."}], "risks": [{"title": "TSLA is dragging", "detail": "Relative weakness is visible."}], "comparison": ["Breadth is stronger than the simulator baseline."]},
+            }
+
+        monkeypatch.setattr(live_market_api.live_market_service, "get_snapshot", fake_snapshot)
+        r = client.get("/api/live-market/snapshot")
+        assert r.status_code == 200
+        data = r.json()
+        for key in ("provider_name", "provider_status", "market_snapshot", "sector_pulse", "major_movers", "watchlist", "simulator_context", "ai_brief"):
+            assert key in data, f"missing live-market key: {key}"
+        assert data["provider_status"] == "live"
+        assert len(data["market_snapshot"]) == 1
+
+    def test_live_market_snapshot_fallback_state(self, monkeypatch):
+        from backend.app.api import live_market as live_market_api
+
+        async def fake_fallback(force_refresh: bool = False):
+            return {
+                "provider_name": "Yahoo Finance",
+                "provider_status": "fallback",
+                "provider_note": "Provider unavailable.",
+                "generated_at": "2026-04-01T12:00:00+00:00",
+                "last_successful_at": None,
+                "cache_age_seconds": None,
+                "is_stale": True,
+                "warnings": ["Live market quotes could not be loaded right now."],
+                "tracked_scope_note": "Tracked real-market cards will repopulate automatically.",
+                "market_snapshot": [],
+                "sector_pulse": [],
+                "major_movers": {"leaders": [], "laggards": []},
+                "watchlist": [],
+                "simulator_context": {"day": 1, "session": 0, "total_trades": 0, "regime": "sideways", "scenario": "Flat tape", "benchmark_return_pct": 0.0, "realized_vol_pct": 0.0, "breadth_ratio": 50.0, "market_sentiment": 0.0, "session_risk": 0.0, "sector_leader": None, "sector_laggard": None},
+                "ai_brief": {"sentiment": "fallback", "headline": "Fallback active", "summary": "Waiting for the next successful refresh.", "opportunities": [], "risks": [], "comparison": ["Simulator remains available."]},
+            }
+
+        monkeypatch.setattr(live_market_api.live_market_service, "get_snapshot", fake_fallback)
+        r = client.get("/api/live-market/snapshot?refresh=true")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["provider_status"] == "fallback"
+        assert data["market_snapshot"] == []
+        assert data["warnings"]
 
 
 # â”€â”€â”€ Explainability â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

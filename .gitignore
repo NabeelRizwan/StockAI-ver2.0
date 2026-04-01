@@ -23,3 +23,6 @@ PROJECT_OVERVIEW_PRIVATE.md
 # Server runtime logs
 server_out.txt
 server_err.txt
+
+# Local-first research runtime data
+backend/runtime/

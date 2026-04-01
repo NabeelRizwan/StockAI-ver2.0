@@ -43,12 +43,28 @@ _FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
 
 @app.get("/", response_class=FileResponse)
 async def serve_landing():
-    return FileResponse(_FRONTEND_DIR / "landing.html", media_type="text/html")
+    return FileResponse(
+        _FRONTEND_DIR / "landing.html",
+        media_type="text/html",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
 
 @app.get("/app", response_class=FileResponse)
 async def serve_frontend():
-    return FileResponse(_FRONTEND_DIR / "index.html", media_type="text/html")
+    return FileResponse(
+        _FRONTEND_DIR / "index.html",
+        media_type="text/html",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
 
 # ── Health check ──

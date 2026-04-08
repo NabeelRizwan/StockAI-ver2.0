@@ -112,6 +112,118 @@ Stock AI System
 This structure ensures separation of concerns and improves maintainability.
 
 ---
+## 🧠 AI Agent Workflow (Detailed)
+
+The core of the system is built around intelligent trading agents that follow a structured decision-making pipeline. Each agent simulates a real-world trader by processing inputs, reasoning about market conditions, and executing actions.
+
+### 🔄 End-to-End Workflow
+
+```text
+Market Data → Input Processing → Reasoning → Decision → Validation → Execution → Logging
+```
+
+### 1. 📥 Input Collection & Preprocessing
+
+Each agent begins by collecting relevant information from the environment:
+
+* Current stock prices
+* Historical trends (if available)
+* External signals (e.g., news, events)
+* Internal state (portfolio, balance, past actions)
+
+The data is structured into a consistent format so that it can be processed efficiently by the agent.
+
+### 2. 🧠 Contextual Understanding
+
+Before making a decision, the agent builds context:
+
+* Identifies whether the market is **bullish, bearish, or neutral**
+* Evaluates recent price movements
+* Considers external signals that may impact price behavior
+
+This step ensures that decisions are not random but grounded in observable conditions.
+
+### 3. 🤖 Reasoning Layer (AI / Prompt-Driven Logic)
+
+The reasoning layer is the core intelligence of the agent:
+
+#### Inputs Transformation
+
+* Inputs are transformed into structured prompts or logical conditions
+
+#### Decision Factors
+
+* Risk vs reward
+* Market momentum
+* Current portfolio exposure
+
+#### Example Reasoning
+
+* “Price is rising steadily → potential buy opportunity”
+* “Negative sentiment detected → consider selling”
+
+### 4. ⚖️ Decision Generation
+
+Based on reasoning, the agent produces a structured decision:
+
+* **BUY** → Invest in stock
+* **SELL** → Liquidate holdings
+* **HOLD** → Take no action
+
+The decision is generated in a consistent format to ensure it can be processed reliably by the system.
+
+### 5. ✅ Decision Validation
+
+Before execution, decisions are validated against constraints:
+
+* Available balance (for BUY)
+* Portfolio holdings (for SELL)
+* Risk limits or exposure thresholds
+
+This step prevents unrealistic or invalid actions.
+
+### 6. 💼 Execution Layer
+
+Validated decisions are executed:
+
+* Portfolio is updated
+* Balance is adjusted
+* Trade details are recorded
+
+This step reflects the actual impact of agent decisions within the simulation.
+
+### 7. 📊 Logging & Tracking
+
+All actions are logged for analysis:
+
+* Decision taken (BUY/SELL/HOLD)
+* Input conditions at the time of decision
+* Resulting portfolio changes
+
+#### Purpose
+
+* Performance evaluation
+* Debugging
+* Behavioral analysis of agents
+
+### 8. 🔁 Iterative Learning Behavior (Simulation Loop)
+
+The system runs in multiple iterations:
+
+* Agents continuously receive updated market data
+* Decisions evolve based on previous outcomes
+* Behavior becomes more consistent over time
+
+This iterative process simulates real trading environments where decisions are made repeatedly under changing conditions.
+
+### 🎯 Key Characteristics of the Agent System
+
+* **Autonomous** → Each agent acts independently
+* **State-aware** → Decisions consider past actions and current portfolio
+* **Context-driven** → Based on market conditions and signals
+* **Modular** → Easy to extend or improve reasoning logic
+* **Deterministic Output** → Structured BUY/SELL/HOLD decisions
+
 
 ## 🚀 Features
 
